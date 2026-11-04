@@ -1,18 +1,20 @@
-# Study Tracker
+# LearnLog
 
-A local-first study tracker for people who learn deeply, then forget. Create a **study field** (e.g. "DSA 2026"), add **topics** as you start them, time every session, and get **spaced-repetition revisions** scheduled as a queue rather than a calendar. Missed days never break the plan, and a streak calendar shows your consistency.
+**Study tracker.** A local-first app for people who learn deeply, then forget. Create a **subject** (e.g. "DSA 2026"), add **topics** as you start them, time every session, and get **spaced-repetition revisions** scheduled as a queue rather than a calendar. Missed days never break the plan, and a streak calendar shows your consistency.
 
-Works for any subject: coding interviews, exams, languages.
+Works for anything you study: coding interviews, exams, languages.
+
+> In the code and API a subject is called a *field* (`StudyField`, `/api/fields`); the UI says **subject** everywhere.
 
 ## Features
 
-- **Study fields and topics** with descriptions, any number of labelled links, and an optional *recall prompt*.
+- **Subjects and topics** with descriptions, any number of labelled links, and an optional *recall prompt*.
 - **One global timer**: start, pause, resume, end. Starting something new auto-pauses whatever was running.
 - **Spaced repetition**: revisions at 1 → 3 → 7 → 16 → 35 → 90 → 180 days, then *Mastered*. Each revision is graded **Forgot / Hard / Good**:
   - Good moves to the next step, Hard repeats the step, Forgot goes back to step 1.
   - The next interval counts from the day you **actually** revised, so being late never stacks up penalties.
 - **Recall first**: revisions show your recall prompt before revealing notes and links.
-- **Field page** with total / learning / revision time, recall rate, and tabs: Ongoing · All topics · Revised · Revisions (due now, capped at 5/day, plus the next 2 days) · History.
+- **Subject page** with total / learning / revision time, recall rate, and tabs: Ongoing · All topics · Revised · Revisions (due now, capped at 5/day, plus the next 2 days) · History.
 - **Streaks**: completing any topic or revision counts for the day. Current and longest streak, shown as a heatmap or a month calendar.
 - **Long-session guard**: if a timer has run for 3h+, the app asks whether you forgot to stop it.
 - **Fix your time log**: edit or remove any finished session; overlapping sessions are rejected.
@@ -20,7 +22,10 @@ Works for any subject: coding interviews, exams, languages.
 - **"No revision needed"** for topics worth studying once (intros, overviews): they count as done but stay out of the revision queue.
 - **Settings**: your own interval ladder, daily revision cap, day-start hour (e.g. 04:00 for night owls) and long-session limit.
 - **Light and dark themes** with a one-click toggle.
-- **Archive or delete** fields and topics; **export** everything to JSON and **import** it back.
+- **Weak spots**: topics you keep forgetting (2+ Forgot in their last 5 revisions) get their own tab, so you re-learn them instead of just revising.
+- **Targets and pace** (optional): e.g. "60 topics by 31 Jan" shows whether you're ahead, on track or behind, and how many topics a day you need.
+- **Per-subject revision intervals**: give an exam subject a tighter ladder than the rest.
+- **Archive or delete** subjects and topics; **export** everything to JSON and **import** it back.
 
 ## Quick start
 
@@ -115,8 +120,8 @@ A pause closes a segment and a resume opens a new one, so one activity can span 
 
 ```
 packages/shared   Scheduler, streaks, study-day maths (+ unit tests), Zod schemas, API types
-apps/api          NestJS modules: profile, fields, topics, activities (timer), stats, backup; Prisma schema + migrations
-apps/web          React pages (Landing, Field, Profile) and components (timer bar, drawer, calendars, …)
+apps/api          NestJS modules: profile, subjects, topics, activities (timer), stats, backup; Prisma schema + migrations
+apps/web          React pages (Landing, Subject, Profile) and components (timer bar, drawer, calendars, …)
 docs/             Requirements and feature list
 data/             Your SQLite database (git-ignored)
 ```
@@ -147,7 +152,5 @@ The scheduling rules live in [`packages/shared/src/scheduler.ts`](packages/share
 
 ## Roadmap
 
-Phase 1 (MVP) and Phase 2 (time-log editing, settings, import, discard revision, hover states, dark mode, compact calendar) are done.
-
-Phase 3: weak-topics list, target date and pace indicator, per-field intervals.
-Phase 4: cross-field Today view, weekly review, desktop app.
+Done: Phase 1 (MVP), Phase 2 (time-log editing, settings, import, discard revision, hover states, dark mode, compact calendar) and Phase 3 (weak spots, targets and pace, per-subject intervals, calendar split at midnight).
+Phase 4: cross-subject Today view, weekly review, desktop app.

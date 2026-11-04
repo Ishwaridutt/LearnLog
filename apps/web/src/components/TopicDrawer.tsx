@@ -49,7 +49,7 @@ export function TopicDrawer({ topicId, today, onClose }: { topicId: string; toda
         ) : editing ? (
           <EditTopic topic={topic.data} onDone={() => setEditing(false)} />
         ) : (
-          <TopicView topic={topic.data} today={today} steps={settings.data.revisionIntervals.length} onEdit={() => setEditing(true)} onDeleted={onClose} />
+          <TopicView topic={topic.data} today={today} steps={topic.data.intervals.length} onEdit={() => setEditing(true)} onDeleted={onClose} />
         )}
       </aside>
     </div>

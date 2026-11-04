@@ -16,13 +16,18 @@ export const FIELD_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef444
 export const profileSchema = z.object({ name: z.string().trim().min(1, 'Name is required').max(60) });
 export type ProfileInput = z.infer<typeof profileSchema>;
 
+/** A revision ladder: 1–20 whole days, strictly increasing. */
+export const intervalsSchema = z
+  .array(z.number().int().min(1).max(3650))
+  .min(1)
+  .max(20)
+  .refine((a) => a.every((v, i) => i === 0 || v > a[i - 1]), 'Intervals must increase');
+
+const dayStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
+
 export const settingsSchema = z
   .object({
-    revisionIntervals: z
-      .array(z.number().int().min(1).max(3650))
-      .min(1)
-      .max(20)
-      .refine((a) => a.every((v, i) => i === 0 || v > a[i - 1]), 'Intervals must increase'),
+    revisionIntervals: intervalsSchema,
     dayStartHour: z.number().int().min(0).max(23),
     dailyRevisionCap: z.number().int().min(1).max(100),
     longSessionMinutes: z.number().int().min(30).max(1440),
@@ -35,6 +40,11 @@ export const fieldCreateSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(80),
   description: optionalText(2000),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Invalid colour'),
+  /** F-26: custom ladder for this field; null = use the global setting. */
+  revisionIntervals: intervalsSchema.nullish(),
+  /** F-25: optional target; both or neither (checked by the API). null clears it. */
+  targetTopicCount: z.number().int().min(1).max(100_000).nullish(),
+  targetDate: dayStr.nullish(),
 });
 export const fieldUpdateSchema = fieldCreateSchema.partial();
 export type FieldCreateInput = z.input<typeof fieldCreateSchema>;
@@ -69,7 +79,7 @@ export const segmentEditSchema = z.object({
 
 /** F-22: shape of an export file accepted by import. Row contents are checked by the database. */
 export const importSchema = z.object({
-  app: z.literal('study-tracker', { message: 'Not a Study Tracker export file' }),
+  app: z.literal('study-tracker', { message: 'Not a LearnLog export file' }),
   schemaVersion: z.literal(1, { message: 'Unsupported export version' }),
   data: z.object({
     profile: z.array(z.record(z.string(), z.unknown())).max(1),

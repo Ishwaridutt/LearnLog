@@ -19,9 +19,9 @@ export function Onboarding() {
           if (name.trim()) save.mutate();
         }}
       >
-        <div className="grid h-12 w-12 place-items-center rounded-xl bg-indigo-600 text-xl font-bold text-white">S</div>
+        <div className="grid h-12 w-12 place-items-center rounded-xl bg-indigo-600 text-xl font-bold text-white">L</div>
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Welcome to Study Tracker</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">Welcome to LearnLog</h1>
           <p className="mt-1 text-sm text-slate-500">Learn it once, revise it on schedule, and keep your streak going.</p>
         </div>
         <label className="block">

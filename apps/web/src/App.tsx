@@ -64,8 +64,11 @@ function Layout({ name }: { name: string }) {
       <header className="border-b border-slate-200 bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link to="/" className="flex items-center gap-2 font-semibold text-slate-900">
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-600 text-sm text-white">S</span>
-            Study Tracker
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-600 text-sm text-white">L</span>
+            <span className="leading-tight">
+              LearnLog
+              <span className="block text-[10px] font-normal tracking-wide text-slate-500 uppercase">Study tracker</span>
+            </span>
           </Link>
           <div className="flex items-center gap-3">
           <ThemeToggle />

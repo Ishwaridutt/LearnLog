@@ -1,4 +1,5 @@
 import type { Day } from './days';
+import type { Pace } from './insights';
 import type { Grade, TopicStatus } from './scheduler';
 
 /** API response shapes. Timestamps are ISO strings. */
@@ -38,6 +39,14 @@ export interface FieldTile {
   paused: boolean;
   dueCount: number;
   upcomingCount: number;
+  /** F-24: topics currently weak (≥2 Forgot in their last 5 graded revisions). */
+  weakCount: number;
+  /** F-25: null when no target is set. */
+  pace: Pace | null;
+  targetTopicCount: number | null;
+  targetDate: Day | null;
+  /** F-26: this field's own ladder, or null when it uses the global one. */
+  customIntervals: number[] | null;
 }
 
 export interface FieldSummary {
@@ -50,7 +59,9 @@ export interface FieldSummary {
   counts: { notStarted: number; inProgress: number; completed: number; mastered: number };
   /** Good ÷ graded on-schedule revisions, 0–1; null if none. */
   recallRate: number | null;
-  tabs: { ongoing: number; all: number; revised: number; due: number; upcoming: number };
+  tabs: { ongoing: number; all: number; revised: number; due: number; upcoming: number; weak: number };
+  /** Effective revision ladder for this field (custom or global). */
+  intervals: number[];
 }
 
 export interface Link {
@@ -110,14 +121,26 @@ export interface Topic {
 
 export interface TopicDetail extends Topic {
   fieldName: string;
+  /** Effective revision ladder for this topic's field. */
+  intervals: number[];
   activities: (Activity & { segments: Segment[] })[];
 }
 
 export interface RevisionLists {
   today: Day;
   cap: number;
+  intervals: number[];
   dueNow: Topic[];
   upcoming: Topic[];
+}
+
+/** F-24 */
+export interface WeakTopic extends Topic {
+  recentForgots: number;
+  recentGraded: number;
+  lastForgotAt: string | null;
+  /** Good ÷ all graded revisions of this topic, 0–1. */
+  recallRate: number | null;
 }
 
 export interface HistoryRow extends Activity {

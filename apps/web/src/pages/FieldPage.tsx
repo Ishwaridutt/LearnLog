@@ -5,6 +5,8 @@ import type { FieldSummary } from '@study/shared';
 import { api } from '../api/client';
 import { FieldForm } from '../components/FieldForm';
 import { HistoryTab } from '../components/HistoryTab';
+import { PaceCard } from '../components/Pace';
+import { WeakTab } from '../components/WeakTab';
 import { RevisionsTab } from '../components/RevisionsTab';
 import { TopicDrawer } from '../components/TopicDrawer';
 import { emptyTopic, toTopicInput, TopicFormFields } from '../components/TopicForm';
@@ -15,7 +17,7 @@ import { Badge, Button, ErrorText, inputCls, Modal, Spinner } from '../component
 import { fmtDuration, liveSeconds } from '../lib/format';
 import { useNow } from '../lib/useNow';
 
-const TABS = ['ongoing', 'all', 'revised', 'revisions', 'history'] as const;
+const TABS = ['ongoing', 'all', 'revised', 'revisions', 'weak', 'history'] as const;
 type Tab = (typeof TABS)[number];
 
 export function FieldPage() {
@@ -39,7 +41,7 @@ export function FieldPage() {
       <div className="space-y-3">
         <ErrorText error={summary.error} />
         <Link to="/" className="text-sm text-indigo-700">
-          ← Back to fields
+          ← Back to subjects
         </Link>
       </div>
     );
@@ -52,6 +54,7 @@ export function FieldPage() {
     all: ['All topics', s.tabs.all],
     revised: ['Revised', s.tabs.revised],
     revisions: ['Revisions', s.tabs.due, s.tabs.due > 0],
+    weak: ['Weak spots', s.tabs.weak],
     history: ['History', null],
   };
 
@@ -61,7 +64,7 @@ export function FieldPage() {
       <FieldHeader summary={s} onAdd={() => setAdding(true)} />
       {archived && (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          This field is archived. Its history and time still count, but timers and revisions are paused. Unarchive it to continue studying.
+          This subject is archived. Its history and time still count, but timers and revisions are paused. Unarchive it to continue studying.
         </p>
       )}
 
@@ -101,6 +104,7 @@ export function FieldPage() {
       )}
       {tab === 'revised' && <TopicsTab fieldId={fieldId} tab="revised" today={s.today} onOpen={openTopic} />}
       {tab === 'revisions' && <RevisionsTab fieldId={fieldId} onOpen={openTopic} />}
+      {tab === 'weak' && <WeakTab fieldId={fieldId} today={s.today} onOpen={openTopic} />}
       {tab === 'history' && <HistoryTab fieldId={fieldId} onOpen={openTopic} />}
 
       {adding && <AddTopic fieldId={fieldId} onClose={() => setAdding(false)} onCreated={openTopic} />}
@@ -124,7 +128,7 @@ function FieldHeader({ summary: s, onAdd }: { summary: FieldSummary; onAdd: () =
     mutationFn: () => api.archiveField(s.field.id, !archived),
     onSuccess: () => {
       qc.invalidateQueries();
-      toast(archived ? 'Field restored' : 'Field archived. Find it under “Show archived” on the home page.');
+      toast(archived ? 'Subject restored' : 'Subject archived. Find it under “Show archived” on the home page.');
     },
   });
   const del = useMutation({
@@ -142,7 +146,7 @@ function FieldHeader({ summary: s, onAdd }: { summary: FieldSummary; onAdd: () =
   return (
     <header className="space-y-4">
       <Link to="/" className="rounded text-sm text-slate-500 transition-colors hover:text-indigo-700">
-        ← All fields
+        ← All subjects
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
@@ -186,11 +190,18 @@ function FieldHeader({ summary: s, onAdd }: { summary: FieldSummary; onAdd: () =
         />
       </div>
 
+      {s.field.pace && <PaceCard pace={s.field.pace} />}
+      {s.field.customIntervals && (
+        <p className="text-xs text-slate-500">
+          Revision ladder for this subject: <span className="font-medium text-slate-700">{s.field.customIntervals.join(' → ')} days</span>
+        </p>
+      )}
+
       {editing && <FieldForm open onClose={() => setEditing(false)} initial={s.field} />}
       <Modal
         open={deleting}
         onClose={() => setDeleting(false)}
-        title="Delete study field?"
+        title="Delete subject?"
         footer={
           <>
             <Button onClick={() => setDeleting(false)}>Cancel</Button>

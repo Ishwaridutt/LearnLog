@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { FieldTile as Tile } from '@study/shared';
 import { api } from '../api/client';
 import { FieldForm } from '../components/FieldForm';
+import { PaceBadge } from '../components/Pace';
 import { StreakCard } from '../components/StreakCard';
 import { Badge, Button, Empty, Spinner } from '../components/ui';
 import { fmtDuration, liveSeconds } from '../lib/format';
@@ -26,7 +27,7 @@ export function LandingPage({ name }: { name: string }) {
           {greeting}, {name}
         </h1>
         <p className="text-sm text-slate-500">
-          {dueTotal > 0 ? `${dueTotal} revision${dueTotal === 1 ? '' : 's'} due across your fields.` : 'No revisions due right now. Keep learning.'}
+          {dueTotal > 0 ? `${dueTotal} revision${dueTotal === 1 ? '' : 's'} due across your subjects.` : 'No revisions due right now. Keep learning.'}
         </p>
       </div>
 
@@ -34,16 +35,16 @@ export function LandingPage({ name }: { name: string }) {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Study fields</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Subjects</h2>
           <Button variant="primary" onClick={() => setCreating(true)}>
-            + New field
+            + Add subject
           </Button>
         </div>
         {fields.isPending ? (
           <Spinner />
         ) : !fields.data?.length ? (
-          <Empty title="Create your first study field">
-            A field is a subject or project, like “DSA 2026” or “System Design”. Add topics inside it as you study them.
+          <Empty title="Add your first subject">
+            A subject is what you're studying, like “DSA 2026” or “System Design”. Add topics inside it as you study them.
           </Empty>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -63,7 +64,7 @@ export function LandingPage({ name }: { name: string }) {
             {archived.isPending ? (
               <Spinner />
             ) : !archived.data?.length ? (
-              <p className="text-sm text-slate-500">No archived fields.</p>
+              <p className="text-sm text-slate-500">No archived subjects.</p>
             ) : (
               archived.data.map((f) => <ArchivedRow key={f.id} field={f} />)
             )}
@@ -109,7 +110,9 @@ function FieldTile({ field: f }: { field: Tile }) {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
+          {f.pace && <PaceBadge pace={f.pace} />}
           {f.dueCount > 0 && <Badge tone="red">{f.dueCount} due</Badge>}
+          {f.weakCount > 0 && <Badge tone="amber">{f.weakCount} weak</Badge>}
           {f.upcomingCount > 0 && <Badge>{f.upcomingCount} upcoming</Badge>}
         </div>
       </div>

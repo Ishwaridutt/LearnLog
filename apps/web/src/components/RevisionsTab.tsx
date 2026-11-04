@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { diffDays, type Topic } from '@study/shared';
 import { api } from '../api/client';
 import { fmtDate, fmtDay, relDay } from '../lib/format';
-import { useSettingsSteps } from '../lib/useSettingsSteps';
 import { TopicActions } from './TopicActions';
 import { useToast } from './Toasts';
 import { Badge, Button, Empty, rowHover, Spinner } from './ui';
@@ -11,11 +10,11 @@ import { Badge, Button, Empty, rowHover, Spinner } from './ui';
 /** F-10 Revisions tab: Due now (capped) + Upcoming (next 2 days). */
 export function RevisionsTab({ fieldId, onOpen }: { fieldId: string; onOpen: (id: string) => void }) {
   const lists = useQuery({ queryKey: ['revisions', fieldId], queryFn: () => api.revisions(fieldId) });
-  const steps = useSettingsSteps();
   const [showAll, setShowAll] = useState(false);
   if (lists.isPending) return <Spinner />;
   if (!lists.data) return null;
   const { dueNow, upcoming, cap, today } = lists.data;
+  const steps = lists.data.intervals.length; // this field's ladder (F-26)
   const visible = showAll ? dueNow : dueNow.slice(0, cap);
   const hidden = dueNow.length - visible.length;
 

@@ -19,6 +19,7 @@ import type {
   TopicDetail,
   TopicListQuery,
   TopicUpdateInput,
+  WeakTopic,
 } from '@study/shared';
 
 export class ApiError extends Error {
@@ -68,6 +69,7 @@ export const api = {
 
   topics: (fieldId: string, q: Partial<TopicListQuery>) => req<Topic[]>('GET', `/fields/${fieldId}/topics${qs(q)}`),
   revisions: (fieldId: string) => req<RevisionLists>('GET', `/fields/${fieldId}/revisions`),
+  weak: (fieldId: string) => req<WeakTopic[]>('GET', `/fields/${fieldId}/weak`),
   history: (fieldId: string, q: HistoryQuery) => req<HistoryRow[]>('GET', `/fields/${fieldId}/history${qs(q)}`),
   createTopic: (fieldId: string, input: TopicCreateInput) => req<TopicDetail>('POST', `/fields/${fieldId}/topics`, input),
   topic: (id: string) => req<TopicDetail>('GET', `/topics/${id}`),

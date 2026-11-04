@@ -2,6 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { DEFAULT_INTERVALS, Settings, SettingsInput, studyDay } from '@study/shared';
 import { PrismaService, Tx } from '../prisma/prisma.service';
 
+/** Parse a stored JSON ladder; null if absent or invalid. */
+export function parseIntervals(json: string | null): number[] | null {
+  if (!json) return null;
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) && v.length && v.every((n) => Number.isInteger(n) && n > 0) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 @Injectable()
 export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -32,6 +43,13 @@ export class SettingsService {
       data: { ...rest, ...(revisionIntervals ? { revisionIntervals: JSON.stringify(revisionIntervals) } : {}) },
     });
     return this.get();
+  }
+
+  /** F-26: the revision ladder for a field: its own if set, otherwise the global one. */
+  async intervalsFor(fieldId: string, tx: Tx = this.prisma): Promise<number[]> {
+    const field = await tx.studyField.findUnique({ where: { id: fieldId }, select: { revisionIntervals: true } });
+    const custom = parseIntervals(field?.revisionIntervals ?? null);
+    return custom ?? (await this.get(tx)).revisionIntervals;
   }
 
   /** Today's study day under current settings. */

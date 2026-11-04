@@ -30,6 +30,11 @@ export class TopicsController {
     return this.topics.revisions(fieldId);
   }
 
+  @Get('fields/:fieldId/weak')
+  weak(@Param('fieldId') fieldId: string) {
+    return this.topics.weak(fieldId);
+  }
+
   @Get('fields/:fieldId/history')
   history(@Param('fieldId') fieldId: string, @Query(new ZodPipe(historyQuerySchema)) q: HistoryQuery) {
     return this.topics.history(fieldId, q);

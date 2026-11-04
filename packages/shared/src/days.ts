@@ -49,3 +49,23 @@ export function dayRange(from: Day, to: Day): Day[] {
   for (let d = from; d <= to; d = addDays(d, 1)) out.push(d);
   return out;
 }
+
+/**
+ * Split a time span into seconds per study day, cutting at each day boundary
+ * (local `dayStartHour`). Used so a session that runs past midnight counts on both days.
+ */
+export function splitByStudyDay(start: Date, end: Date, dayStartHour = 0): { day: Day; seconds: number }[] {
+  const out: { day: Day; seconds: number }[] = [];
+  let cur = start.getTime();
+  const stop = end.getTime();
+  while (cur < stop) {
+    const day = studyDay(cur, dayStartHour);
+    const [y, m, d] = parseDay(day);
+    // Next boundary: the following calendar day at dayStartHour, local time (DST-safe).
+    const boundary = new Date(y, m - 1, d + 1, dayStartHour).getTime();
+    const next = Math.min(boundary, stop);
+    out.push({ day, seconds: (next - cur) / 1000 });
+    cur = next;
+  }
+  return out;
+}

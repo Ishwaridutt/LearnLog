@@ -20,7 +20,7 @@ type AutoPaused = ActionResult['autoPaused'];
 
 /** Archived topics and topics in archived fields can't run a timer. */
 function assertActive(topic: { archivedAt: Date | null; field: { archivedAt: Date | null } }) {
-  if (topic.field.archivedAt) throw new BadRequestException('This study field is archived. Unarchive it first.');
+  if (topic.field.archivedAt) throw new BadRequestException('This subject is archived. Unarchive it first.');
   if (topic.archivedAt) throw new BadRequestException('This topic is archived. Unarchive it first.');
 }
 
@@ -182,10 +182,11 @@ export class TimerService {
       });
 
       const topic = activity.topic;
+      const intervals = await this.settings.intervalsFor(topic.fieldId, tx);
       if (activity.type === 'LEARNING') {
         const schedule = topic.skipRevision
           ? { status: 'COMPLETED', reviewStep: null, nextDueDay: null }
-          : scheduleAfterLearning(day, s.revisionIntervals);
+          : scheduleAfterLearning(day, intervals);
         await tx.topic.update({ where: { id: topic.id }, data: { ...schedule, completedAt: now } });
       } else if (topic.skipRevision) {
         // Practice on a "no revision needed" topic: log it, never schedule.
@@ -201,7 +202,7 @@ export class TimerService {
           grade: grade!,
           isEarly: activity.isEarly,
           completedDay: day,
-          intervals: s.revisionIntervals,
+          intervals,
         });
         await tx.topic.update({
           where: { id: topic.id },

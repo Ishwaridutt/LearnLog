@@ -27,8 +27,9 @@ export class BackupController {
       this.prisma.activity.findMany(),
       this.prisma.timeSegment.findMany(),
     ]);
-    res.setHeader('Content-Disposition', `attachment; filename="study-tracker-${localDay(new Date())}.json"`);
+    res.setHeader('Content-Disposition', `attachment; filename="learnlog-${localDay(new Date())}.json"`);
     return {
+      // Internal file identifier, kept as 'study-tracker' so older backups still import.
       app: 'study-tracker',
       schemaVersion: EXPORT_SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),

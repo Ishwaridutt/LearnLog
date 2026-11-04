@@ -2,6 +2,9 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import type { Prisma } from '@prisma/client';
 import {
   addDays,
+  Grade,
+  weakness,
+  WeakTopic,
   HistoryQuery,
   HistoryRow,
   LinkInput,
@@ -39,7 +42,7 @@ export class TopicsService {
 
   private async field(fieldId: string) {
     const f = await this.prisma.studyField.findUnique({ where: { id: fieldId } });
-    if (!f) throw new NotFoundException('Study field not found');
+    if (!f) throw new NotFoundException('Subject not found');
     return f;
   }
 
@@ -51,7 +54,7 @@ export class TopicsService {
 
   async create(fieldId: string, input: TopicData & { name: string }): Promise<TopicDetail> {
     const f = await this.field(fieldId);
-    if (f.archivedAt) throw new BadRequestException('Unarchive this field before adding topics');
+    if (f.archivedAt) throw new BadRequestException('Unarchive this subject before adding topics');
     const t = await this.prisma.topic.create({
       data: {
         fieldId,
@@ -75,10 +78,11 @@ export class TopicsService {
       },
     });
     if (!t) throw new NotFoundException('Topic not found');
-    const open = await this.timer.openSegment();
+    const [open, intervals] = await Promise.all([this.timer.openSegment(), this.settings.intervalsFor(t.fieldId)]);
     return {
       ...toTopic(t, open),
       fieldName: t.field.name,
+      intervals,
       activities: t.activities.map((a) => ({ ...toActivity(a, open), segments: a.segments.map(toSegment) })),
     };
   }
@@ -101,16 +105,17 @@ export class TopicsService {
    * Turning "no revision needed" on drops the topic from the queue (its step is kept for history).
    * Turning it off on a completed topic starts revisions again from step 1, due tomorrow.
    */
-  private async skipRevisionChange(t: { status: string; skipRevision: boolean }, skip: boolean) {
+  private async skipRevisionChange(t: { status: string; skipRevision: boolean; fieldId: string }, skip: boolean) {
     if (skip === t.skipRevision) return {};
     if (t.status === 'MASTERED') throw new BadRequestException('Mastered topics are already out of the revision queue');
     if (skip) return { skipRevision: true, nextDueDay: null };
     if (t.status !== 'COMPLETED') return { skipRevision: false };
     const s = await this.settings.get();
+    const intervals = await this.settings.intervalsFor(t.fieldId);
     return {
       skipRevision: false,
       reviewStep: 0,
-      nextDueDay: addDays(studyDay(new Date(), s.dayStartHour), s.revisionIntervals[0]),
+      nextDueDay: addDays(studyDay(new Date(), s.dayStartHour), intervals[0]),
     };
   }
 
@@ -138,7 +143,7 @@ export class TopicsService {
       nextDueDay: t.nextDueDay,
       forgotCount: t.forgotCount,
     };
-    const next = pullBack(state, studyDay(new Date(), s.dayStartHour), s.revisionIntervals);
+    const next = pullBack(state, studyDay(new Date(), s.dayStartHour), await this.settings.intervalsFor(t.fieldId));
     await this.prisma.topic.update({ where: { id }, data: next });
     return this.detail(id);
   }
@@ -191,9 +196,39 @@ export class TopicsService {
     return {
       today,
       cap: s.dailyRevisionCap,
+      intervals: await this.settings.intervalsFor(fieldId),
       dueNow: rows.filter((t) => t.nextDueDay! <= today).sort(byDue).map((t) => toTopic(t, open)),
       upcoming: rows.filter((t) => t.nextDueDay! > today).sort(byDue).map((t) => toTopic(t, open)),
     };
+  }
+
+  /** F-24: topics with ≥2 Forgot in their last 5 graded revisions, worst first. */
+  async weak(fieldId: string): Promise<WeakTopic[]> {
+    await this.field(fieldId);
+    const [rows, open] = await Promise.all([
+      this.prisma.topic.findMany({
+        where: { fieldId, archivedAt: null, skipRevision: false, status: { in: ['COMPLETED', 'MASTERED'] } },
+        include: topicInclude,
+      }),
+      this.timer.openSegment(),
+    ]);
+    const out: WeakTopic[] = [];
+    for (const t of rows) {
+      const graded = t.activities
+        .filter((a) => a.type === 'REVISION' && a.status === 'COMPLETED' && a.grade)
+        .sort((a, b) => b.completedAt!.getTime() - a.completedAt!.getTime());
+      const w = weakness(graded.map((a) => a.grade as Grade));
+      if (!w.weak) continue;
+      const lastForgot = graded.find((a) => a.grade === 'FORGOT');
+      out.push({
+        ...toTopic(t, open),
+        recentForgots: w.recentForgots,
+        recentGraded: w.recentGraded,
+        lastForgotAt: lastForgot?.completedAt?.toISOString() ?? null,
+        recallRate: graded.length ? graded.filter((a) => a.grade === 'GOOD').length / graded.length : null,
+      });
+    }
+    return out.sort((a, b) => b.recentForgots - a.recentForgots || (b.lastForgotAt ?? '').localeCompare(a.lastForgotAt ?? ''));
   }
 
   async history(fieldId: string, q: HistoryQuery): Promise<HistoryRow[]> {

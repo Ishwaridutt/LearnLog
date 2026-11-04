@@ -167,7 +167,7 @@ function DataSection() {
     onSuccess: (r) => {
       setPending(null);
       qc.invalidateQueries();
-      toast(`Imported ${r.imported.fields} fields, ${r.imported.topics} topics, ${r.imported.activities} sessions`, 'success');
+      toast(`Imported ${r.imported.fields} subjects, ${r.imported.topics} topics, ${r.imported.activities} sessions`, 'success');
     },
   });
 
@@ -176,11 +176,11 @@ function DataSection() {
     try {
       const data = JSON.parse(await file.text());
       const d = data?.data;
-      if (data?.app !== 'study-tracker' || !d) throw new Error('This is not a Study Tracker export file.');
+      if (data?.app !== 'study-tracker' || !d) throw new Error('This is not a LearnLog export file.');
       setPending({
         name: file.name,
         data,
-        summary: `${d.fields?.length ?? 0} fields, ${d.topics?.length ?? 0} topics, ${d.activities?.length ?? 0} sessions${
+        summary: `${d.fields?.length ?? 0} subjects, ${d.topics?.length ?? 0} topics, ${d.activities?.length ?? 0} sessions${
           data.exportedAt ? `, exported ${fmtDate(data.exportedAt)}` : ''
         }`,
       });
@@ -222,7 +222,7 @@ function DataSection() {
       >
         <div className="space-y-3 text-sm text-slate-700">
           <p>
-            Importing <strong>{pending?.name}</strong> ({pending?.summary}) will <strong>delete all current fields, topics and history</strong> and
+            Importing <strong>{pending?.name}</strong> ({pending?.summary}) will <strong>delete all current subjects, topics and history</strong> and
             replace them with the file's contents. This can't be undone.
           </p>
           <p>

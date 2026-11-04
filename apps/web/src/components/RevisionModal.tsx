@@ -86,7 +86,7 @@ export function RevisionModal({
         </div>
       ) : (
         <>
-          <GradePicker topic={t} intervals={settings.data.revisionIntervals} dayStartHour={settings.data.dayStartHour} grading={grading} onGrade={onGrade} />
+          <GradePicker topic={t} intervals={t.intervals} dayStartHour={settings.data.dayStartHour} grading={grading} onGrade={onGrade} />
           {t.openActivity && (
             <div className="mt-4 flex justify-end border-t border-slate-100 pt-3">
               <DiscardButton onConfirm={() => onCancel(t.openActivity!.id)} />

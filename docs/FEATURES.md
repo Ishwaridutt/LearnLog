@@ -1,23 +1,23 @@
 # Feature List
 
-Build checklist for the Study Tracker. Rules referenced as §x live in [REQUIREMENTS.md](REQUIREMENTS.md).
+Build checklist for the LearnLog. Rules referenced as §x live in [REQUIREMENTS.md](REQUIREMENTS.md).
 
 | ID | Feature | Priority | Phase |
 |---|---|---|---|
 | F-01 | Profile + onboarding | Must | 1 |
-| F-02 | Study fields CRUD, archive, delete | Must | 1 |
+| F-02 | Study subjects CRUD, archive, delete | Must | 1 |
 | F-03 | Topics CRUD, links, recall prompt, archive, delete | Must | 1 |
 | F-04 | Single global timer with auto-pause | Must | 1 |
 | F-05 | Long-session guard | Must | 1 |
 | F-06 | Learning completion → first revision scheduled | Must | 1 |
 | F-07 | Revision flow with grading, early revision, Mastered, pull-back | Must | 1 |
 | F-08 | Scheduler + streak pure functions with tests | Must | 1 |
-| F-09 | Field header stats | Must | 1 |
-| F-10 | Field tabs with counts | Must | 1 |
+| F-09 | Subject header stats | Must | 1 |
+| F-10 | Subject tabs with counts | Must | 1 |
 | F-11 | Search, sort, status filter | Must | 1 |
 | F-12 | Topic detail drawer with timeline | Must | 1 |
-| F-13 | Field History tab with filters | Must | 1 |
-| F-14 | Landing page with field tiles and badges | Must | 1 |
+| F-13 | Subject History tab with filters | Must | 1 |
+| F-14 | Landing page with subject tiles and badges | Must | 1 |
 | F-15 | Streak card: current/longest, heatmap ⇄ ticks | Must | 1 |
 | F-16 | Persistent timer bar | Must | 1 |
 | F-17 | JSON export | Must | 1 |
@@ -30,8 +30,8 @@ Build checklist for the Study Tracker. Rules referenced as §x live in [REQUIREM
 | F-29 | Compact month calendar | Should | 2 |
 | F-24 | Weak topics list | Should | 3 |
 | F-25 | Target + pace indicator (toggle) | Should | 3 |
-| F-26 | Per-field interval ladder | Should | 3 |
-| F-30 | Cross-field Today view | Could | 4 |
+| F-26 | Per-subject interval ladder | Should | 3 |
+| F-30 | Cross-subject Today view | Could | 4 |
 | F-31 | Weekly review page | Could | 4 |
 | F-32 | Automatic DB backups | Could | 4 |
 | F-33 | Desktop packaging | Could | 4 |
@@ -48,12 +48,12 @@ Build checklist for the Study Tracker. Rules referenced as §x live in [REQUIREM
 - [x] Submitting creates Profile and default Settings and lands on the landing page.
 - [x] `/profile` shows name (editable), member-since date, total study time, and the Export button.
 
-### F-02 Study fields
-- [x] Create with name (required, unique among existing fields), optional description, colour from a fixed palette of 8.
+### F-02 Subjects
+- [x] Create with name (required, unique among existing subjects), optional description, colour from a fixed palette of 8.
 - [x] Edit name, description, colour.
-- [x] Archive hides the field from the main grid and moves it to "Show archived"; unarchive restores it. Archived fields' revisions don't show in badges.
-- [x] Delete requires typing the field name to confirm and removes all topics, activities, segments.
-- [x] Archiving or deleting a field whose topic owns the running segment pauses it first.
+- [x] Archive hides the subject from the main grid and moves it to "Show archived"; unarchive restores it. Archived subjects' revisions don't show in badges.
+- [x] Delete requires typing the subject name to confirm and removes all topics, activities, segments.
+- [x] Archiving or deleting a subject whose topic owns the running segment pauses it first.
 
 ### F-03 Topics
 - [x] Add dialog: name (required), description, recall prompt, 0..n links (label + http/https URL), all optional except name.
@@ -94,7 +94,7 @@ Unit tests must include:
 - [x] Current streak not broken if today doesn't qualify yet; broken if yesterday didn't qualify.
 - [x] Longest streak across gaps.
 
-### F-09 Field header
+### F-09 Subject header
 - [x] Shows Total, Learning, Revision time (h m), counts Completed / In progress / Mastered, Recall % (or "–").
 - [x] Includes the live running segment; updates after every timer action.
 
@@ -117,15 +117,15 @@ Unit tests must include:
 - [x] Learning and revision entries are visually distinct (colour + label).
 
 ### F-13 History tab
-- [x] Lists completed and in-progress activities in the field, newest first.
+- [x] Lists completed and in-progress activities in the subject, newest first.
 - [x] Filters: type (All/Learning/Revision), grade, date range (from/to), topic name search; combinable.
 - [x] Clicking a row opens the topic drawer.
 
 ### F-14 Landing page
-- [x] Grid of active fields with name, colour, total time, completed/total topics.
+- [x] Grid of active subjects with name, colour, total time, completed/total topics.
 - [x] Badges: ▶ Running (tile border highlighted, pulsing), ⏸ Paused, "N due", "N upcoming" (hidden at zero).
-- [x] "+ New field" button; "Show archived" toggle.
-- [x] Empty state guides the user to create their first field.
+- [x] "+ Add subject" button; "Show archived" toggle.
+- [x] Empty state guides the user to add their first subject.
 
 ### F-15 Streak card
 - [x] Current 🔥 and longest streak per §6.8.
@@ -134,13 +134,32 @@ Unit tests must include:
 - [x] Ticks: month grid with ✓ on qualifying days, today highlighted, prev/next month navigation.
 
 ### F-16 Timer bar
-- [x] Visible on all pages while any activity is in progress: topic, field, type, live elapsed (HH:MM:SS), Pause/Resume, End.
+- [x] Visible on all pages while any activity is in progress: topic, subject, type, live elapsed (HH:MM:SS), Pause/Resume, End.
 - [x] If several are paused, it shows the running one, or else the most recently paused, plus "+N paused".
 
 ### F-17 Export
 - [x] Profile → Export downloads `study-tracker-YYYY-MM-DD.json` containing all tables and a schema version.
 
 ---
+
+## Phase 3 acceptance criteria
+
+### F-24 Weak topics
+- [x] A topic is weak when ≥2 of its last 5 graded revisions were Forgot (REQUIREMENTS §6.7b); it recovers as newer grades push them out.
+- [x] Subject page **Weak spots** tab with count: Forgot count in the window, per-topic recall %, "No recall prompt" hint, last-forgot date, and Revise.
+- [x] Subject tiles show an "N weak" badge.
+
+### F-25 Target and pace
+- [x] Optional target in the subject form: completed topics + date (both or neither; date not in the past). Off by default.
+- [x] Pace measured from the day the target is set, starting at the topics already completed; changing the number or date re-plans from today (§6.7c).
+- [x] Subject header pace card: progress bar with a marker for today's plan, Ahead / On track / Behind / Target reached / Past target date, and topics-per-day needed. Tiles show the status badge.
+
+### F-26 Per-subject intervals
+- [x] Optional custom ladder in the subject form (validated like the global one); subjects without one use the global ladder.
+- [x] Learning completion, revision grading, pull-back and re-enabling revisions all use the subject's ladder; grade previews and step counts ("Step 2/3") use it too.
+
+### Calendar minutes across midnight
+- [x] Heatmap/calendar minutes split a session at the study-day boundary (respects the day-start hour); sessions that started before the calendar window are included.
 
 ## Phase 2 acceptance criteria
 
@@ -179,7 +198,7 @@ Problem: ghost buttons (Edit, Archive, Delete, Profile chip) only darken slightl
 - [x] Secondary buttons: hover → indigo border and text, not just a lighter grey.
 - [x] Primary/success/danger buttons: one shade lighter on hover plus a subtle press state (`active:scale-[0.98]`).
 - [x] Profile chip in the header: indigo-tinted pill on hover.
-- [x] Field tiles: hover → indigo border, raised shadow, 2px lift; Running/Paused tiles keep their green/amber ring.
+- [x] Subject tiles: hover → indigo border, raised shadow, 2px lift; Running/Paused tiles keep their green/amber ring.
 - [x] Topic rows, revision rows, history rows: indigo-tinted row background on hover, so the whole row reads as clickable.
 - [x] Tabs: hover shows a grey underline and darker text; the active tab stays indigo.
 - [x] Colour-swatch, link chips, calendar arrows and drawer close button get visible hover states.

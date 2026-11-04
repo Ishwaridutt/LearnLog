@@ -1,4 +1,4 @@
-# Study Tracker: Requirements Document
+# LearnLog: Requirements Document
 
 **Version:** 1.0 (draft for sign-off)  
 **Date:** 2026-11-04  
@@ -15,7 +15,7 @@ Learners who study deeply across several subjects (for example DSA, GenAI, Syste
 2. **Backlog panic.** After a few missed days, the amount of pending work feels huge and they quit. Fixed-calendar plans make this worse, because one missed day shifts everything.
 3. **No visible progress.** Hours of study leave no trace, so motivation fades.
 
-**The product:** a local-first, single-learner study tracker. The learner creates **Study Fields** (e.g. "DSA 2026"), adds **Topics** as they start them, times every learning and revision session, and gets **spaced-repetition revisions** scheduled as a *queue*, not a calendar. Lateness never breaks the plan, and a streak calendar makes consistency visible.
+**The product:** a local-first, single-learner study tracker. The learner creates **Subjects** (e.g. "DSA 2026"), adds **Topics** as they start them, times every learning and revision session, and gets **spaced-repetition revisions** scheduled as a *queue*, not a calendar. Lateness never breaks the plan, and a streak calendar makes consistency visible.
 
 The app is subject-agnostic. Nothing in it assumes computer science.
 
@@ -37,8 +37,8 @@ Measured from the app's own data after 8 weeks of use:
 
 | Term | Meaning |
 |---|---|
-| **Study Field** | A project or subject container, e.g. "DSA 2026" or "UPSC History" |
-| **Topic** | One sitting's worth of study (aim: 20–120 min). Belongs to one field. Grouping is by name prefix, e.g. `SW - Max sum subarray` |
+| **Subject** | What you're studying, e.g. "DSA 2026" or "UPSC History". Stored as `StudyField` in code and the API (`/fields`) |
+| **Topic** | One sitting's worth of study (aim: 20–120 min). Belongs to one subject. Grouping is by name prefix, e.g. `SW - Max sum subarray` |
 | **Activity** | One unit of work on a topic: either the **Learning** (exactly one per topic) or a **Revision** (many per topic) |
 | **Segment** | One continuous running stretch of an activity's timer. Pause closes a segment; resume opens a new one |
 | **Step** | Position in the revision interval ladder |
@@ -52,19 +52,19 @@ Feature IDs refer to [FEATURES.md](FEATURES.md), which holds the acceptance crit
 ### 4.1 Must (MVP)
 
 - **Profile:** first-run onboarding asks for the learner's name; a Profile page shows and edits it (F-01).
-- **Study fields:** create, edit, archive, unarchive, delete; unlimited count (F-02).
+- **Study subjects:** create, edit, archive, unarchive, delete; unlimited count (F-02).
 - **Topics:** create, edit name, description, recall prompt, and a list of labelled links (label + URL, add, edit, remove, reorder); archive and delete (F-03).
 - **Single global timer:** start, pause, resume, end. Only one segment runs app-wide; starting another auto-pauses the running one and shows a toast (F-04).
 - **Long-session guard:** a running segment older than the threshold (default 180 min) triggers a prompt to keep it or set the real end time (F-05).
 - **Learning completion** schedules the first revision (F-06).
 - **Revisions:** start (with the recall prompt shown first if present), pause, resume, end with a grade of Forgot, Hard or Good; early revisions allowed; Mastered after the final step; "pull back" from Mastered (F-07).
 - **Scheduler** exactly as in §6, covered by unit tests (F-08).
-- **Field page header:** total time, learning time, revision time, topic counts (completed, in progress, mastered), recall rate (F-09).
-- **Field tabs with counts:** Ongoing, All Topics, Revised, Revisions (Due now with daily cap + Upcoming 2 days), History (F-10).
+- **Subject page header:** total time, learning time, revision time, topic counts (completed, in progress, mastered), recall rate (F-09).
+- **Subject tabs with counts:** Ongoing, All Topics, Revised, Revisions (Due now with daily cap + Upcoming 2 days), History (F-10).
 - **Search and sort** on topic lists: name search; sort by added date or completed date, ascending or descending (F-11).
 - **Topic detail** with an activity timeline (F-12).
-- **History tab** per field with filters: type, grade, date range, topic name (F-13).
-- **Landing page:** field tiles with in-progress (running or paused) badge and colour change, due and upcoming revision badges, create-field button (F-14).
+- **History tab** per subject with filters: type, grade, date range, topic name (F-13).
+- **Landing page:** subject tiles with in-progress (running or paused) badge and colour change, due and upcoming revision badges, add-subject button (F-14).
 - **Streak card:** current and longest streak; dropdown to switch between a heatmap and a month calendar with ticks (F-15).
 - **Persistent running-timer bar** visible on every screen (F-16).
 - **Export** of all data to JSON (F-17).
@@ -77,12 +77,12 @@ Feature IDs refer to [FEATURES.md](FEATURES.md), which holds the acceptance crit
 - Cancel an in-progress revision without recording it (F-23).
 - UI polish: clear hover/press states on all clickable elements (F-27), dark mode with a Light/Dark toggle (F-28), compact multi-month calendar view (F-29).
 - Weak topics list: topics with 2 or more Forgot grades (F-24).
-- Optional target per field (target date + target topic count) with an ahead/behind pace indicator, toggleable (F-25).
-- Per-field interval ladder override (F-26).
+- Optional target per subject (target date + target topic count) with an ahead/behind pace indicator, toggleable (F-25).
+- Per-subject interval ladder override (F-26).
 
 ### 4.3 Could (later)
 
-- Cross-field "Today" view (F-30).
+- Cross-subject "Today" view (F-30).
 - Weekly review summary page for the last 7 days (F-31).
 - Automatic daily DB backup file rotation (F-32).
 - Desktop packaging (Electron or Tauri) (F-33).
@@ -122,11 +122,13 @@ All timestamps are stored as UTC ISO datetimes. **Study days are stored as `YYYY
 | Field | Type | Notes |
 |---|---|---|
 | id | cuid | |
-| name | string | required, unique among non-deleted fields |
+| name | string | required, unique among non-deleted subjects |
 | description | string? | |
 | color | string | hex, picked from a palette |
 | archivedAt | datetime? | null = active |
-| targetDate, targetTopicCount, paceEnabled | (Should, F-25) | nullable |
+| revisionIntervals | string? | F-26: JSON int[] custom ladder; null = global setting |
+| targetTopicCount, targetDate | int?, string? | F-25: optional target (both or neither) |
+| targetStartDay, targetBaseline | string?, int? | F-25: set by the server when a target is set or changed (today, completed count then) |
 | createdAt, updatedAt | datetime | |
 
 ### Topic
@@ -259,7 +261,7 @@ revision on a skipRevision topic:  isEarly = true; logs lastRevisedAt / revision
 ```
 Skipped topics still count as completed and keep their time. Mastered topics can't be toggled (already out of the queue).
 
-### 6.6 Revision lists (per field, excluding archived topics and topics with an open activity)
+### 6.6 Revision lists (per subject, excluding archived topics and topics with an open activity)
 ```
 dueNow   = topics where nextDueDay <= today
            sorted by nextDueDay ASC, then reviewStep ASC, then name
@@ -275,8 +277,28 @@ Topics with an in-progress revision appear in **Ongoing**, not in these lists.
 - **resume:** same as start.
 - **end:** close the open segment if one is open; mark complete; revisions require a grade.
 - **Long-session guard:** when the UI loads, and every 60 s, if `now − openSegment.startedAt > longSessionMinutes`, show a modal: "You've been on *X* for 7h 12m." with options **Keep it**, or **Set end time** (datetime picker, must be after start and not in the future), which closes the segment at that time. The activity stays in progress (paused).
-- Archiving or deleting a topic or field that owns the running segment pauses it first.
-- Segments are attributed to the study day of their `startedAt`, for minutes-per-day.
+- Archiving or deleting a topic or subject that owns the running segment pauses it first.
+- For minutes-per-day, a segment is split at each study-day boundary (`splitByStudyDay`), so a session from 23:30 to 01:00 counts 30 min on the first day and 60 on the second.
+
+### 6.7a Per-subject intervals (F-26)
+`I` in §6.2–6.5 is the topic's subject ladder if one is set, otherwise the global ladder. A change applies from each topic's next revision; a topic whose step is beyond a shorter new ladder is treated as on its last step.
+
+### 6.7b Weak topics (F-24)
+A topic (completed or mastered, not archived, not "no revision needed") is **weak** when at least 2 of its last 5 graded revisions (early ones included) were Forgot. It stops being weak once enough newer grades push those Forgots out of the window.
+
+### 6.7c Target and pace (F-25)
+When a target is set or its number/date changes: `startDay = today`, `baseline = completed topics now`.
+```
+total    = max(1, targetDate − startDay)          elapsed = clamp(today − startDay, 0, total)
+expected = baseline + (target − baseline) × elapsed / total
+status   = done      if completed ≥ target
+           overdue   if today > targetDate
+           ahead     if completed − expected ≥ 1
+           behind    if completed − expected ≤ −1
+           on_track  otherwise
+perDayNeeded = (target − completed) / (daysLeft + 1)   (today counts)
+```
+"Completed" means completed or mastered topics (including "no revision needed") that aren't archived.
 
 ### 6.8 Streaks
 ```
@@ -289,9 +311,9 @@ longest streak  = longest run of consecutive qualifying days ever
 Today not yet qualifying does **not** break the current streak until the day ends.
 
 ### 6.9 Statistics
-- **Field learning time** = Σ `totalSeconds` (plus the live open segment) of LEARNING activities in the field.
-- **Field revision time** = same for REVISION activities. **Total** = learning + revision.
-- **Recall rate** = Good ÷ all graded **non-early** revisions in the field; shows "–" when there are none.
+- **Subject learning time** = Σ `totalSeconds` (plus the live open segment) of LEARNING activities in the subject.
+- **Subject revision time** = same for REVISION activities. **Total** = learning + revision.
+- **Recall rate** = Good ÷ all graded **non-early** revisions in the subject; shows "–" when there are none.
 - Archived topics count toward totals; deleted topics do not.
 
 ### 6.10 Calendar
@@ -305,9 +327,9 @@ Today not yet qualifying does **not** break the current streak until the day end
 2. **Landing page.**
    - Top bar: app name, greeting ("Hi, Ishwari"), Profile link.
    - Streak card: current 🔥 and longest streak, view dropdown (Heatmap or Calendar), then the calendar.
-   - "Study Fields" grid with a **+ New field** button. Each tile shows name, colour, total time, completed/total topics, and badges: **▶ Running** (green pulse, tile border coloured), **⏸ Paused** (amber), **N due** (red), **N upcoming** (grey). Click opens the field.
+   - "Subjects" grid with a **+ Add subject** button. Each tile shows name, colour, total time, completed/total topics, and badges: **▶ Running** (green pulse, tile border coloured), **⏸ Paused** (amber), **N due** (red), **N upcoming** (grey). Click opens the subject.
    - "Show archived" toggle at the bottom.
-3. **Field page.**
+3. **Subject page.**
    - Header: name, description, edit/archive/delete menu, and stat chips (Total, Learning, Revision, Completed / In progress / Mastered, Recall %).
    - **+ Add topic** button opens a dialog with name, description, recall prompt, and links (label + URL rows).
    - Tabs with count badges: **Ongoing (n) · All Topics (n) · Revised (n) · Revisions (due n) · History**.
@@ -318,7 +340,7 @@ Today not yet qualifying does **not** break the current streak until the day end
    - *History:* table of activities (date, topic, type, duration, grade, early flag) with filters for type, grade, date range and topic search. Click a row to open the topic.
 4. **Topic detail (side drawer).** Editable name, description, recall prompt, links; status and schedule (step, next due); actions (Start / Revise / Pull back / Archive / Delete); **timeline** of the learning and every revision, colour-coded, with segments expandable.
 5. **Revision flow.** Start opens the recall card ("Answer from memory first") with a **Reveal** button showing links and notes; timer runs in the timer bar; **End** opens the grade picker (Forgot / Hard / Good) with a preview of the resulting next due date for each.
-6. **Global timer bar.** Fixed at the bottom of every page when something is running or paused: topic, field, type, live elapsed time, Pause/Resume/End.
+6. **Global timer bar.** Fixed at the bottom of every page when something is running or paused: topic, subject, type, live elapsed time, Pause/Resume/End.
 7. **Profile.** Name, member since, totals; Export button (Settings and Import come in Phase 2).
 
 ## 8. Non-functional requirements
@@ -329,7 +351,7 @@ Today not yet qualifying does **not** break the current streak until the day end
 | Offline | Works with Wi-Fi off |
 | Privacy | DB file in `./data/` (git-ignored). The repository never contains learner data |
 | Setup | `npm install && npm run dev` from a fresh clone on Node LTS; DB is created and migrated automatically |
-| Speed | API p95 < 100 ms and page interactive < 1 s with 50 fields, 5,000 topics, 50,000 segments |
+| Speed | API p95 < 100 ms and page interactive < 1 s with 50 subjects, 5,000 topics, 50,000 segments |
 | Timer accuracy | Elapsed time computed from stored timestamps, not client tick counts; survives page reload and browser restart |
 | Data integrity | Timer state changes in DB transactions; invariants in §5 enforced server-side |
 | Backup | Export full JSON at any time; DB is a single copyable file |
@@ -382,7 +404,7 @@ The scheduler lives in `packages/shared` as **pure functions**. The API uses the
 ### API surface (REST, JSON, prefix `/api`)
 ```
 GET  PUT   /profile                GET PUT /settings
-GET  POST  /fields                 GET PATCH DELETE /fields/:id
+GET  POST  /subjects                 GET PATCH DELETE /fields/:id
 POST       /fields/:id/archive     /fields/:id/unarchive
 GET        /fields/:id/summary     # header stats + tab counts
 GET        /fields/:id/topics?tab=all|ongoing|revised&q=&sort=createdAt|completedAt&order=asc|desc&status=
@@ -412,15 +434,15 @@ GET        /export                 POST /import (Phase 2)
 ## 11. Phased build plan
 
 ### Phase 1: MVP (one weekend)
-**Saturday:** monorepo scaffold, Prisma schema and migration, shared scheduler + streak with tests, profile/onboarding, fields CRUD + archive/delete, topics CRUD + links, timer engine (single global segment, auto-pause), learning start/end.  
-**Sunday:** revision flow with recall prompt and grading, field page header + 5 tabs + counts, search and sort, history tab with filters, topic drawer timeline, landing tiles with badges, streak card with heatmap and ticks, timer bar, long-session guard, JSON export.  
+**Saturday:** monorepo scaffold, Prisma schema and migration, shared scheduler + streak with tests, profile/onboarding, subjects CRUD + archive/delete, topics CRUD + links, timer engine (single global segment, auto-pause), learning start/end.  
+**Sunday:** revision flow with recall prompt and grading, subject page header + 5 tabs + counts, search and sort, history tab with filters, topic drawer timeline, landing tiles with badges, streak card with heatmap and ticks, timer bar, long-session guard, JSON export.  
 **Done when:** you can create "DSA 2026", add and time a topic, see it in Revisions tomorrow, grade it, and see your streak.
 
 ### Phase 2: Hardening (first week of evenings)
 F-20 segment editing, F-21 settings page, F-22 import, F-23 cancel revision, F-27 hover states, F-28 dark mode, F-29 compact calendar, auto-backup decision.
 
-### Phase 3: Insight
-F-24 weak topics, F-25 target and pace, F-26 per-field intervals.
+### Phase 3: Insight (done)
+F-24 weak topics, F-25 target and pace, F-26 per-subject intervals, plus splitting sessions across midnight in the calendar.
 
 ### Phase 4: Reach
 F-30 Today view, F-31 weekly review, F-33 desktop packaging, README and screenshots for GitHub.
@@ -428,7 +450,7 @@ F-30 Today view, F-31 weekly review, F-33 desktop packaging, README and screensh
 ## 12. Open questions
 
 1. **Forgot on an early revision resets the schedule** (§6.4). I added this because forgetting is a real signal. Keep it, or make early revisions never touch the schedule?
-2. **Segments that cross the day boundary** count fully toward their start day. Splitting them is more accurate but adds complexity. OK for v1?
+2. ~~Segments that cross the day boundary~~ Resolved: sessions are split across days (§6.7).
 3. **Import behaviour:** replace-all (proposed) or merge?
 4. **Long-paused topics:** should a topic paused for more than N days get a nudge badge?
 5. **Pace indicator formula** (F-25): needs target topic count + target date; ahead/behind = completed vs. linear expectation. Confirm when Phase 3 starts.

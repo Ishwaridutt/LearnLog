@@ -32,6 +32,13 @@ model StudyField {
   name        String
   description String?
   color       String
+  // F-26: custom revision ladder (JSON int[]); null = use the global setting.
+  revisionIntervals String?
+  // F-25: optional target. Pace is measured from targetStartDay, starting at targetBaseline completed topics.
+  targetTopicCount  Int?
+  targetDate        String? // YYYY-MM-DD
+  targetStartDay    String? // YYYY-MM-DD
+  targetBaseline    Int?
   archivedAt  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

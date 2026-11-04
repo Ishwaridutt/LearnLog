@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { addDays, CalendarDay, computeStreaks, dayRange, StreakInfo, studyDay } from '@study/shared';
+import { addDays, CalendarDay, computeStreaks, dayRange, splitByStudyDay, StreakInfo, studyDay } from '@study/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../profile/settings.service';
 
@@ -21,7 +21,7 @@ export class StatsService {
     return { today, ...computeStreaks(rows.map((r) => r.completedDay!), today) };
   }
 
-  /** §6.10: minutes and completions per study day. Segments count toward their start day. */
+  /** §6.10: minutes and completions per study day. Sessions are split at day boundaries. */
   async calendar(from?: string, to?: string): Promise<CalendarDay[]> {
     const s = await this.settings.get();
     const now = new Date();
@@ -36,8 +36,9 @@ export class StatsService {
     const windowStart = new Date(`${addDays(start, -1)}T00:00:00`);
     const windowEnd = new Date(`${addDays(end, 2)}T00:00:00`);
     const [segments, activities] = await Promise.all([
+      // Any segment overlapping the window, including ones that started before it.
       this.prisma.timeSegment.findMany({
-        where: { startedAt: { gte: windowStart, lt: windowEnd } },
+        where: { startedAt: { lt: windowEnd }, OR: [{ endedAt: null }, { endedAt: { gt: windowStart } }] },
         select: { startedAt: true, endedAt: true },
       }),
       this.prisma.activity.findMany({
@@ -46,11 +47,12 @@ export class StatsService {
       }),
     ]);
 
+    // Midnight fix: a session crossing the day boundary counts on each day it touches.
     const seconds = new Map<string, number>();
     for (const seg of segments) {
-      const d = studyDay(seg.startedAt, s.dayStartHour);
-      const secs = ((seg.endedAt ?? now).getTime() - seg.startedAt.getTime()) / 1000;
-      seconds.set(d, (seconds.get(d) ?? 0) + Math.max(0, secs));
+      for (const part of splitByStudyDay(seg.startedAt, seg.endedAt ?? now, s.dayStartHour)) {
+        seconds.set(part.day, (seconds.get(part.day) ?? 0) + part.seconds);
+      }
     }
     for (const [d, secs] of seconds) {
       const entry = days.get(d);
