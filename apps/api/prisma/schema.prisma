@@ -1,0 +1,107 @@
+// Study Tracker data model. See docs/REQUIREMENTS.md §5.
+// Enum-like columns are plain strings; allowed values live in @study/shared.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  // Relative to this file: <repo>/data/study.db (git-ignored).
+  url      = "file:../../../data/study.db"
+}
+
+model Profile {
+  id        Int      @id @default(1)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Settings {
+  id                 Int    @id @default(1)
+  revisionIntervals  String @default("[1,3,7,16,35,90,180]") // JSON int[]
+  dayStartHour       Int    @default(0)
+  dailyRevisionCap   Int    @default(5)
+  longSessionMinutes Int    @default(180)
+  calendarView       String @default("HEATMAP") // HEATMAP | TICKS
+}
+
+model StudyField {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  color       String
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  topics      Topic[]
+}
+
+model Topic {
+  id            String     @id @default(cuid())
+  fieldId       String
+  field         StudyField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  recallPrompt  String?
+  status        String     @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | MASTERED
+  reviewStep    Int?
+  nextDueDay    String? // YYYY-MM-DD
+  startedAt     DateTime?
+  completedAt   DateTime?
+  lastRevisedAt DateTime?
+  revisionCount Int        @default(0)
+  forgotCount   Int        @default(0)
+  archivedAt    DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  links         TopicLink[]
+  activities    Activity[]
+
+  @@index([fieldId])
+  @@index([nextDueDay])
+}
+
+model TopicLink {
+  id        String @id @default(cuid())
+  topicId   String
+  topic     Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  label     String
+  url       String
+  sortOrder Int    @default(0)
+
+  @@index([topicId])
+}
+
+model Activity {
+  id            String        @id @default(cuid())
+  topicId       String
+  topic         Topic         @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  type          String // LEARNING | REVISION
+  status        String        @default("IN_PROGRESS") // IN_PROGRESS | COMPLETED
+  grade         String? // FORGOT | HARD | GOOD
+  isEarly       Boolean       @default(false)
+  stepAtStart   Int?
+  dueDayAtStart String?
+  startedAt     DateTime
+  completedAt   DateTime?
+  completedDay  String?
+  totalSeconds  Int           @default(0)
+  segments      TimeSegment[]
+
+  @@index([topicId])
+  @@index([completedDay])
+}
+
+model TimeSegment {
+  id         String    @id @default(cuid())
+  activityId String
+  activity   Activity  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  startedAt  DateTime
+  endedAt    DateTime? // null = the single running segment (app-wide)
+  edited     Boolean   @default(false)
+
+  @@index([activityId])
+  @@index([endedAt])
+}

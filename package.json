@@ -1,0 +1,26 @@
+{
+  "name": "study-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first study tracker with spaced-repetition revisions, timers and streaks.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "predev": "npm run build -w @study/shared && npm run db:migrate -w @study/api",
+    "dev": "concurrently -k -n api,web -c blue,green \"npm run dev -w @study/api\" \"npm run dev -w @study/web\"",
+    "build": "npm run build -w @study/shared && npm run build -w @study/api && npm run build -w @study/web",
+    "test": "npm test -w @study/shared",
+    "typecheck": "npm run build -w @study/shared && npm run typecheck -w @study/api && npm run typecheck -w @study/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5",
+    "typescript": "^5.9.3"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true
+  }
+}
