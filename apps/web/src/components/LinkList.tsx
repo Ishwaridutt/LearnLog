@@ -10,7 +10,7 @@ export function LinkList({ links }: { links: Pick<Link, 'label' | 'url'>[] }) {
             href={l.url}
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-surface px-2 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50"
             title={l.url}
           >
             ↗ {l.label}

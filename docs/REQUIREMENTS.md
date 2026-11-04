@@ -75,6 +75,7 @@ Feature IDs refer to [FEATURES.md](FEATURES.md), which holds the acceptance crit
 - Settings page: interval ladder, day-start hour, daily cap, long-session threshold, default calendar view (F-21).
 - Import from JSON (replace-all, with confirm) (F-22).
 - Cancel an in-progress revision without recording it (F-23).
+- UI polish: clear hover/press states on all clickable elements (F-27), dark mode with a Light/Dark toggle (F-28), compact multi-month calendar view (F-29).
 - Weak topics list: topics with 2 or more Forgot grades (F-24).
 - Optional target per field (target date + target topic count) with an ahead/behind pace indicator, toggleable (F-25).
 - Per-field interval ladder override (F-26).
@@ -144,6 +145,7 @@ All timestamps are stored as UTC ISO datetimes. **Study days are stored as `YYYY
 | lastRevisedAt | datetime? | completion of most recent revision; null = "Not yet" |
 | revisionCount | int | completed revisions |
 | forgotCount | int | Forgot grades received |
+| skipRevision | bool | "No revision needed" (F-36): never enters the revision queue |
 | archivedAt | datetime? | |
 | createdAt, updatedAt | datetime | |
 
@@ -246,6 +248,16 @@ else:
 - Mastered topics leave Due/Upcoming and show a "Mastered" badge.
 - **Pull back:** `status = COMPLETED; reviewStep = 0; nextDueDay = addDays(today, I[0])`.
 - A Mastered topic can still get a practice revision, which follows the early rules.
+
+### 6.5a "No revision needed" (F-36)
+```
+on learning end, if skipRevision:  status = COMPLETED; reviewStep = null; nextDueDay = null
+set skipRevision = true:           nextDueDay = null            (reviewStep kept for history)
+set skipRevision = false:          if COMPLETED: reviewStep = 0; nextDueDay = addDays(today, I[0])
+revision on a skipRevision topic:  isEarly = true; logs lastRevisedAt / revisionCount only;
+                                   never changes the schedule (not even Forgot); excluded from recall rate
+```
+Skipped topics still count as completed and keep their time. Mastered topics can't be toggled (already out of the queue).
 
 ### 6.6 Revision lists (per field, excluding archived topics and topics with an open activity)
 ```
@@ -405,7 +417,7 @@ GET        /export                 POST /import (Phase 2)
 **Done when:** you can create "DSA 2026", add and time a topic, see it in Revisions tomorrow, grade it, and see your streak.
 
 ### Phase 2: Hardening (first week of evenings)
-F-20 segment editing, F-21 settings page, F-22 import, F-23 cancel revision, auto-backup decision.
+F-20 segment editing, F-21 settings page, F-22 import, F-23 cancel revision, F-27 hover states, F-28 dark mode, F-29 compact calendar, auto-backup decision.
 
 ### Phase 3: Insight
 F-24 weak topics, F-25 target and pace, F-26 per-field intervals.

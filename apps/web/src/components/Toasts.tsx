@@ -17,9 +17,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4500);
   }, []);
   const toneCls: Record<Tone, string> = {
-    info: 'bg-slate-900 text-white',
-    success: 'bg-emerald-700 text-white',
-    error: 'bg-rose-700 text-white',
+    info: 'bg-gray-900 text-white ring-1 ring-gray-700',
+    success: 'bg-emerald-600 text-white',
+    error: 'bg-rose-600 text-white',
   };
   return (
     <Ctx.Provider value={push}>

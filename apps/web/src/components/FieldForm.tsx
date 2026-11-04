@@ -74,7 +74,7 @@ export function FieldForm({
                 onClick={() => setColor(c)}
                 aria-label={`Colour ${c}`}
                 aria-pressed={color === c}
-                className={`h-7 w-7 rounded-full ${color === c ? 'ring-2 ring-slate-900 ring-offset-2' : ''}`}
+                className={`h-7 w-7 rounded-full transition-transform hover:scale-110 ${color === c ? 'ring-2 ring-slate-900 ring-offset-2 ring-offset-surface' : ''}`}
                 style={{ background: c }}
               />
             ))}

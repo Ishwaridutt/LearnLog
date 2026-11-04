@@ -55,6 +55,7 @@ export function toTopic(t: TopicWithRelations, open: OpenSegment | null): Topic 
     lastRevisedAt: iso(t.lastRevisedAt),
     revisionCount: t.revisionCount,
     forgotCount: t.forgotCount,
+    skipRevision: t.skipRevision,
     archivedAt: iso(t.archivedAt),
     createdAt: t.createdAt.toISOString(),
     links: [...t.links].sort((a, b) => a.sortOrder - b.sortOrder).map(toLink),

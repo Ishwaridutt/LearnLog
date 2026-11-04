@@ -86,6 +86,12 @@ export const api = {
   end: (activityId: string, grade?: Grade) => req<ActionResult>('POST', `/activities/${activityId}/end`, { grade }),
   endSegment: (segmentId: string, endedAt: string) =>
     req<ActionResult>('POST', `/segments/${segmentId}/end`, { endedAt }),
+  editSegment: (segmentId: string, startedAt: string, endedAt: string) =>
+    req<ActionResult>('PATCH', `/segments/${segmentId}`, { startedAt, endedAt }),
+  deleteSegment: (segmentId: string) => req<ActionResult>('DELETE', `/segments/${segmentId}`),
+  cancelRevision: (activityId: string) => req<ActionResult>('DELETE', `/activities/${activityId}`),
+  importData: (file: unknown) =>
+    req<{ imported: { fields: number; topics: number; activities: number } }>('POST', '/import', file),
 
   streak: () => req<StreakInfo>('GET', '/stats/streak'),
   calendar: () => req<CalendarDay[]>('GET', '/stats/calendar'),

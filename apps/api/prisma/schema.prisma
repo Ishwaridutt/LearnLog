@@ -53,6 +53,7 @@ model Topic {
   lastRevisedAt DateTime?
   revisionCount Int        @default(0)
   forgotCount   Int        @default(0)
+  skipRevision  Boolean    @default(false) // "No revision needed": never enters the revision queue
   archivedAt    DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt

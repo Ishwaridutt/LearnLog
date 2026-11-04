@@ -15,6 +15,8 @@ interface Actions {
   /** Ends learning immediately; for a revision opens the grade picker. */
   end: (activity: { id: string; type: ActivityType; topicId: string }) => void;
   openRecall: (topicId: string) => void;
+  /** F-23: discard an in-progress revision without recording it. */
+  cancelRevision: (activityId: string) => void;
   busy: boolean;
 }
 
@@ -80,6 +82,10 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
         exec(async () => ({ res: await api.end(activity.id), message: 'Topic completed. First revision is due tomorrow.' }));
       },
       openRecall: (topicId) => setModal({ mode: 'recall', topicId }),
+      cancelRevision: (id) => {
+        setModal(null);
+        exec(async () => ({ res: await api.cancelRevision(id), message: 'Revision discarded. Nothing was recorded.' }));
+      },
     }),
     [exec, run.isPending, gradeMutation.isPending],
   );
@@ -98,6 +104,7 @@ export function ActionsProvider({ children }: { children: ReactNode }) {
             setModal(null);
           }}
           onGrade={(activityId, grade) => gradeMutation.mutate({ activityId, grade })}
+          onCancel={(activityId) => actions.cancelRevision(activityId)}
           grading={gradeMutation.isPending}
         />
       )}

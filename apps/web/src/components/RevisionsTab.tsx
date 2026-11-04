@@ -1,11 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { diffDays, type Topic } from '@study/shared';
 import { api } from '../api/client';
 import { fmtDate, fmtDay, relDay } from '../lib/format';
 import { useSettingsSteps } from '../lib/useSettingsSteps';
 import { TopicActions } from './TopicActions';
-import { Badge, Empty, Spinner } from './ui';
+import { useToast } from './Toasts';
+import { Badge, Button, Empty, rowHover, Spinner } from './ui';
 
 /** F-10 Revisions tab: Due now (capped) + Upcoming (next 2 days). */
 export function RevisionsTab({ fieldId, onOpen }: { fieldId: string; onOpen: (id: string) => void }) {
@@ -31,7 +32,7 @@ export function RevisionsTab({ fieldId, onOpen }: { fieldId: string; onOpen: (id
           <Empty title="All caught up 🎉">Nothing is due. Learn something new, or revise an upcoming topic early.</Empty>
         ) : (
           <>
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-surface">
               {visible.map((t) => (
                 <RevisionRow key={t.id} topic={t} today={today} steps={steps} onOpen={onOpen} />
               ))}
@@ -57,7 +58,7 @@ export function RevisionsTab({ fieldId, onOpen }: { fieldId: string; onOpen: (id
         {!upcoming.length ? (
           <p className="text-sm text-slate-500">Nothing scheduled for the next 2 days.</p>
         ) : (
-          <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-surface">
             {upcoming.map((t) => (
               <RevisionRow key={t.id} topic={t} today={today} steps={steps} onOpen={onOpen} />
             ))}
@@ -71,7 +72,7 @@ export function RevisionsTab({ fieldId, onOpen }: { fieldId: string; onOpen: (id
 function RevisionRow({ topic: t, today, steps, onOpen }: { topic: Topic; today: string; steps: number; onOpen: (id: string) => void }) {
   const overdue = t.nextDueDay ? diffDays(today, t.nextDueDay) : 0;
   return (
-    <li className="flex items-center gap-4 px-4 py-3 hover:bg-slate-50">
+    <li className={`flex items-center gap-4 px-4 py-3 ${rowHover}`}>
       <button className="min-w-0 flex-1 text-left" onClick={() => onOpen(t.id)}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium text-slate-900 hover:text-indigo-700">{t.name}</span>
@@ -85,10 +86,30 @@ function RevisionRow({ topic: t, today, steps, onOpen }: { topic: Topic; today: 
           {t.recallPrompt && <Badge tone="indigo">Recall prompt</Badge>}
         </div>
         <p className="mt-0.5 text-xs text-slate-500">
-          Step {(t.reviewStep ?? 0) + 1}/{steps} · Last revised {t.lastRevisedAt ? fmtDate(t.lastRevisedAt) : 'not yet'} · Completed {fmtDate(t.completedAt)}
+          Step {Math.min((t.reviewStep ?? 0) + 1, steps)}/{steps} · Last revised {t.lastRevisedAt ? fmtDate(t.lastRevisedAt) : 'not yet'} · Completed {fmtDate(t.completedAt)}
         </p>
       </button>
+      <NotNeededButton topicId={t.id} />
       <TopicActions topic={t} />
     </li>
+  );
+}
+
+/** Quick "this one doesn't need revising" from the queue. */
+function NotNeededButton({ topicId }: { topicId: string }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const m = useMutation({
+    mutationFn: () => api.updateTopic(topicId, { skipRevision: true }),
+    onSuccess: (t) => {
+      qc.invalidateQueries();
+      toast(`“${t.name}” won't be scheduled for revision. Undo from the topic panel.`, 'success');
+    },
+    onError: (e) => toast(e.message, 'error'),
+  });
+  return (
+    <Button size="sm" variant="ghost" disabled={m.isPending} title="No revision needed for this topic" onClick={() => m.mutate()}>
+      Not needed
+    </Button>
   );
 }

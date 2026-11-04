@@ -55,7 +55,7 @@ export function LandingPage({ name }: { name: string }) {
       </section>
 
       <section>
-        <button className="text-sm text-slate-500 hover:text-slate-700" onClick={() => setShowArchived((s) => !s)}>
+        <button className="rounded text-sm text-slate-500 transition-colors hover:text-indigo-700" onClick={() => setShowArchived((s) => !s)}>
           {showArchived ? '▾ Hide archived' : '▸ Show archived'}
         </button>
         {showArchived && (
@@ -82,11 +82,11 @@ function FieldTile({ field: f }: { field: Tile }) {
     ? 'ring-2 ring-emerald-500 bg-emerald-50/40'
     : f.paused
       ? 'ring-2 ring-amber-300 bg-amber-50/40'
-      : 'bg-white hover:border-slate-300';
+      : 'bg-surface hover:border-indigo-300';
   return (
     <Link
       to={`/fields/${f.id}`}
-      className={`group relative block overflow-hidden rounded-2xl border border-slate-200 p-5 transition-shadow hover:shadow-md ${state}`}
+      className={`group relative block overflow-hidden rounded-2xl border border-slate-200 p-5 transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/10 active:translate-y-0 ${state}`}
     >
       <span className="absolute inset-y-0 left-0 w-1.5" style={{ background: f.color }} />
       <div className="flex items-start justify-between gap-2">
@@ -124,7 +124,7 @@ function ArchivedRow({ field }: { field: Tile }) {
     onSuccess: () => qc.invalidateQueries(),
   });
   return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3">
+    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-surface px-4 py-3 transition-colors hover:border-indigo-300">
       <Link to={`/fields/${field.id}`} className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-indigo-700">
         <span className="h-3 w-3 rounded-full" style={{ background: field.color }} />
         {field.name}

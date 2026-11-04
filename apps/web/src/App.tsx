@@ -3,6 +3,7 @@ import { BrowserRouter, Link, NavLink, Outlet, Route, Routes } from 'react-route
 import { api, ApiError } from './api/client';
 import { ActionsProvider } from './components/Actions';
 import { LongSessionGuard } from './components/LongSessionGuard';
+import { ThemeToggle } from './components/ThemeToggle';
 import { TimerBar } from './components/TimerBar';
 import { ToastProvider } from './components/Toasts';
 import { ErrorText, Spinner } from './components/ui';
@@ -60,16 +61,18 @@ function ProfileGate() {
 function Layout({ name }: { name: string }) {
   return (
     <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-slate-200 bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link to="/" className="flex items-center gap-2 font-semibold text-slate-900">
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-600 text-sm text-white">S</span>
             Study Tracker
           </Link>
+          <div className="flex items-center gap-3">
+          <ThemeToggle />
           <NavLink
             to="/profile"
             className={({ isActive }) =>
-              `flex items-center gap-2 rounded-full px-2 py-1 text-sm hover:bg-slate-100 ${isActive ? 'bg-slate-100' : ''}`
+              `flex items-center gap-2 rounded-full px-2 py-1 text-sm transition-colors hover:bg-indigo-50 hover:text-indigo-700 hover:ring-1 hover:ring-indigo-200 ${isActive ? 'bg-indigo-50 ring-1 ring-indigo-200' : ''}`
             }
           >
             <span className="grid h-7 w-7 place-items-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
@@ -77,6 +80,7 @@ function Layout({ name }: { name: string }) {
             </span>
             <span className="text-slate-700">{name}</span>
           </NavLink>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">

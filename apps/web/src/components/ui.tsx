@@ -1,14 +1,23 @@
 import { useEffect, useId, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'ghostDanger' | 'danger' | 'success';
 
+/**
+ * F-27: every variant has a clearly visible hover (colour change, not just a darker grey)
+ * and a press state. Hovers only apply to enabled buttons.
+ */
 const variants: Record<Variant, string> = {
-  primary: 'bg-indigo-600 text-white hover:bg-indigo-500 disabled:bg-indigo-300',
-  secondary: 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 disabled:text-slate-400',
-  ghost: 'text-slate-600 hover:bg-slate-100 disabled:text-slate-300',
-  danger: 'bg-rose-600 text-white hover:bg-rose-500 disabled:bg-rose-300',
-  success: 'bg-emerald-600 text-white hover:bg-emerald-500 disabled:bg-emerald-300',
+  primary: 'bg-indigo-600 text-white shadow-sm enabled:hover:bg-indigo-500 enabled:hover:shadow disabled:bg-indigo-300',
+  secondary:
+    'bg-surface text-slate-700 border border-slate-300 enabled:hover:border-indigo-400 enabled:hover:bg-indigo-50 enabled:hover:text-indigo-700 disabled:text-slate-400',
+  ghost: 'text-slate-600 enabled:hover:bg-indigo-50 enabled:hover:text-indigo-700 disabled:text-slate-300',
+  ghostDanger: 'text-rose-600 enabled:hover:bg-rose-50 enabled:hover:text-rose-700 disabled:text-slate-300',
+  danger: 'bg-rose-600 text-white shadow-sm enabled:hover:bg-rose-500 enabled:hover:shadow disabled:bg-rose-300',
+  success: 'bg-emerald-600 text-white shadow-sm enabled:hover:bg-emerald-500 enabled:hover:shadow disabled:bg-emerald-300',
 };
+
+/** Shared hover for whole clickable rows (topic, revision, history rows). */
+export const rowHover = 'transition-colors hover:bg-indigo-50';
 
 export function Button({
   variant = 'secondary',
@@ -20,7 +29,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors disabled:cursor-not-allowed ${sz} ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-all duration-150 enabled:active:scale-[0.97] disabled:cursor-not-allowed ${sz} ${variants[variant]} ${className}`}
       {...props}
     />
   );
@@ -69,19 +78,19 @@ export function Modal({
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 pt-[10vh]" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-[10vh]" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`w-full ${width} rounded-2xl bg-white shadow-xl`}
+        className={`w-full ${width} rounded-2xl bg-surface shadow-xl`}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <h2 id={titleId} className="text-base font-semibold text-slate-900">
             {title}
           </h2>
-          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Close">
+          <button onClick={onClose} className="rounded-md p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600" aria-label="Close">
             ✕
           </button>
         </div>
@@ -94,7 +103,7 @@ export function Modal({
 
 /** Input styling without a width, for toolbars and fixed-width inputs. */
 export const inputBase =
-  'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100';
+  'rounded-lg border border-slate-300 bg-surface px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100';
 export const inputCls = `${inputBase} w-full`;
 
 export function FormField({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -123,7 +132,7 @@ export function Spinner({ label = 'Loading…' }: { label?: string }) {
 
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+    <div className="rounded-xl border border-dashed border-slate-300 bg-surface px-6 py-10 text-center">
       <p className="font-medium text-slate-700">{title}</p>
       {children && <div className="mt-1 text-sm text-slate-500">{children}</div>}
     </div>

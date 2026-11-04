@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { applyRevision, diffDays, studyDay, type Grade, type TopicDetail } from '@study/shared';
 import { api } from '../api/client';
 import { fmtClock, fmtDay, liveSeconds } from '../lib/format';
@@ -20,6 +20,7 @@ export function RevisionModal({
   onRequestGrade,
   onPause,
   onGrade,
+  onCancel,
   grading,
 }: {
   mode: 'recall' | 'grade';
@@ -28,6 +29,7 @@ export function RevisionModal({
   onRequestGrade: (activityId: string) => void;
   onPause: (activityId: string) => void;
   onGrade: (activityId: string, grade: Grade) => void;
+  onCancel: (activityId: string) => void;
   grading: boolean;
 }) {
   const topic = useQuery({ queryKey: ['topic', topicId], queryFn: () => api.topic(topicId) });
@@ -73,6 +75,7 @@ export function RevisionModal({
                 {fmtClock(liveSeconds(act.totalSeconds, act.liveSince, now))}
               </span>
               <div className="flex gap-2">
+                <DiscardButton onConfirm={() => onCancel(act.id)} />
                 {act.liveSince && <Button onClick={() => onPause(act.id)}>Pause</Button>}
                 <Button variant="primary" onClick={() => onRequestGrade(act.id)}>
                   End &amp; grade
@@ -82,7 +85,14 @@ export function RevisionModal({
           )}
         </div>
       ) : (
-        <GradePicker topic={t} intervals={settings.data.revisionIntervals} dayStartHour={settings.data.dayStartHour} grading={grading} onGrade={onGrade} />
+        <>
+          <GradePicker topic={t} intervals={settings.data.revisionIntervals} dayStartHour={settings.data.dayStartHour} grading={grading} onGrade={onGrade} />
+          {t.openActivity && (
+            <div className="mt-4 flex justify-end border-t border-slate-100 pt-3">
+              <DiscardButton onConfirm={() => onCancel(t.openActivity!.id)} />
+            </div>
+          )}
+        </>
       )}
     </Modal>
   );
@@ -140,5 +150,20 @@ function GradePicker({
         })}
       </div>
     </div>
+  );
+}
+
+/** Two-step discard so a stray click can't throw away a revision. */
+function DiscardButton({ onConfirm }: { onConfirm: () => void }) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(false), 4000);
+    return () => clearTimeout(id);
+  }, [armed]);
+  return (
+    <Button variant={armed ? 'danger' : 'ghost'} title="Discard this revision without recording it" onClick={() => (armed ? onConfirm() : setArmed(true))}>
+      {armed ? 'Click again to discard' : 'Discard revision'}
+    </Button>
   );
 }

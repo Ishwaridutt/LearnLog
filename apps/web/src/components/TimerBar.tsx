@@ -21,7 +21,7 @@ export function TimerBar() {
   return (
     <>
       <div className="h-20" aria-hidden />
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-surface/95 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
           <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${running ? 'animate-pulse bg-emerald-500' : 'bg-amber-400'}`} />
           <div className="min-w-0 flex-1">

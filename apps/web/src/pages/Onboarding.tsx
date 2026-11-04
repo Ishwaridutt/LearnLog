@@ -13,7 +13,7 @@ export function Onboarding() {
   return (
     <div className="grid min-h-screen place-items-center bg-gradient-to-br from-indigo-50 to-slate-50 p-4">
       <form
-        className="w-full max-w-sm space-y-5 rounded-2xl bg-white p-8 shadow-lg"
+        className="w-full max-w-sm space-y-5 rounded-2xl bg-surface p-8 shadow-lg"
         onSubmit={(e) => {
           e.preventDefault();
           if (name.trim()) save.mutate();

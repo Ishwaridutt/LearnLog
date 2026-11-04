@@ -6,7 +6,7 @@ import { fmtClock, fmtDate, fmtDay, fmtDuration, liveSeconds, relDay } from '../
 import { useNow } from '../lib/useNow';
 import { StatusBadge } from './StatusBadge';
 import { TopicActions } from './TopicActions';
-import { Badge, Button, Empty, inputBase, inputCls, Spinner } from './ui';
+import { Badge, Button, Empty, inputBase, inputCls, rowHover, Spinner } from './ui';
 
 const STATUS_LABEL: Record<TopicStatus, string> = {
   NOT_STARTED: 'Not started',
@@ -104,7 +104,7 @@ export function TopicsTab({
           </Empty>
         )
       ) : (
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-surface">
           {topics.data.map((t) => (
             <TopicRow key={t.id} topic={t} tab={tab} today={today} now={now} onOpen={onOpen} />
           ))}
@@ -130,7 +130,7 @@ function TopicRow({
   const done = t.status === 'COMPLETED' || t.status === 'MASTERED';
   const open = t.openActivity;
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 hover:bg-slate-50">
+    <li className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 ${rowHover}`}>
       <button className="min-w-0 flex-1 text-left" onClick={() => onOpen(t.id)}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium text-slate-900 hover:text-indigo-700">{t.name}</span>
@@ -153,8 +153,9 @@ function TopicRow({
           )}
           <span>Added {fmtDate(t.createdAt)}</span>
           {done && <span>Completed {fmtDate(t.completedAt)}</span>}
-          {done && <span>Last revised {t.lastRevisedAt ? fmtDate(t.lastRevisedAt) : 'not yet'}</span>}
-          {t.status === 'COMPLETED' && t.nextDueDay && (
+          {done && !t.skipRevision && <span>Last revised {t.lastRevisedAt ? fmtDate(t.lastRevisedAt) : 'not yet'}</span>}
+          {done && t.skipRevision && <span className="text-sky-700">No revision needed</span>}
+          {t.status === 'COMPLETED' && t.nextDueDay && !t.skipRevision && (
             <span className={t.nextDueDay <= today ? 'font-medium text-rose-600' : ''}>
               Next {fmtDay(t.nextDueDay)} ({relDay(t.nextDueDay, today)})
             </span>

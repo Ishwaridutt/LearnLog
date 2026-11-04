@@ -76,7 +76,7 @@ export function FieldPage() {
               aria-selected={active}
               onClick={() => setParam('tab', t)}
               className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap ${
-                active ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+                active ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-indigo-700'
               }`}
             >
               {label}
@@ -141,7 +141,7 @@ function FieldHeader({ summary: s, onAdd }: { summary: FieldSummary; onAdd: () =
 
   return (
     <header className="space-y-4">
-      <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">
+      <Link to="/" className="rounded text-sm text-slate-500 transition-colors hover:text-indigo-700">
         ← All fields
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -167,7 +167,7 @@ function FieldHeader({ summary: s, onAdd }: { summary: FieldSummary; onAdd: () =
           <Button variant="ghost" onClick={() => archive.mutate()} disabled={archive.isPending}>
             {archived ? 'Unarchive' : 'Archive'}
           </Button>
-          <Button variant="ghost" className="text-rose-600 hover:bg-rose-50" onClick={() => setDeleting(true)}>
+          <Button variant="ghostDanger" onClick={() => setDeleting(true)}>
             Delete
           </Button>
         </div>
@@ -217,7 +217,7 @@ function FieldHeader({ summary: s, onAdd }: { summary: FieldSummary; onAdd: () =
 
 function StatChip({ label, value, sub, strong }: { label: string; value: string; sub?: string; strong?: boolean }) {
   return (
-    <div className={`rounded-xl border px-4 py-3 ${strong ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-white'}`}>
+    <div className={`rounded-xl border px-4 py-3 ${strong ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-surface'}`}>
       <p className="text-xs text-slate-500">{label}</p>
       <p className={`text-lg font-semibold tabular-nums ${strong ? 'text-indigo-900' : 'text-slate-900'}`}>{value}</p>
       {sub && <p className="text-[11px] text-slate-400">{sub}</p>}

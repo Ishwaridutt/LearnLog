@@ -1,5 +1,5 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
-import { endActivitySchema, segmentEndSchema } from '@study/shared';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { endActivitySchema, segmentEditSchema, segmentEndSchema } from '@study/shared';
 import { ZodPipe } from '../common/zod.pipe';
 import { TimerService } from './timer.service';
 
@@ -46,5 +46,20 @@ export class ActivitiesController {
   @HttpCode(200)
   endSegment(@Param('id') id: string, @Body(new ZodPipe(segmentEndSchema)) body: { endedAt: string }) {
     return this.timer.setRunningEnd(id, new Date(body.endedAt));
+  }
+
+  @Patch('segments/:id')
+  editSegment(@Param('id') id: string, @Body(new ZodPipe(segmentEditSchema)) body: { startedAt: string; endedAt: string }) {
+    return this.timer.editSegment(id, new Date(body.startedAt), new Date(body.endedAt));
+  }
+
+  @Delete('segments/:id')
+  deleteSegment(@Param('id') id: string) {
+    return this.timer.deleteSegment(id);
+  }
+
+  @Delete('activities/:id')
+  cancelRevision(@Param('id') id: string) {
+    return this.timer.cancelRevision(id);
   }
 }

@@ -24,6 +24,7 @@ interface TopicData {
   description?: string | null;
   recallPrompt?: string | null;
   links?: LinkInput[];
+  skipRevision?: boolean;
 }
 
 const linkRows = (links: LinkInput[]) => links.map((l, i) => ({ label: l.label, url: l.url, sortOrder: i }));
@@ -57,6 +58,7 @@ export class TopicsService {
         name: input.name,
         description: input.description ?? null,
         recallPrompt: input.recallPrompt ?? null,
+        skipRevision: input.skipRevision ?? false,
         links: { create: linkRows(input.links ?? []) },
       },
     });
@@ -82,16 +84,34 @@ export class TopicsService {
   }
 
   async update(id: string, input: TopicData): Promise<TopicDetail> {
-    await this.topicRow(id);
-    const { links, ...fields } = input;
+    const current = await this.topicRow(id);
+    const { links, skipRevision, ...fields } = input;
+    const scheduleChange = skipRevision === undefined ? {} : await this.skipRevisionChange(current, skipRevision);
     await this.prisma.$transaction(async (tx) => {
-      await tx.topic.update({ where: { id }, data: fields });
+      await tx.topic.update({ where: { id }, data: { ...fields, ...scheduleChange } });
       if (links) {
         await tx.topicLink.deleteMany({ where: { topicId: id } });
         await tx.topicLink.createMany({ data: linkRows(links).map((l) => ({ ...l, topicId: id })) });
       }
     });
     return this.detail(id);
+  }
+
+  /**
+   * Turning "no revision needed" on drops the topic from the queue (its step is kept for history).
+   * Turning it off on a completed topic starts revisions again from step 1, due tomorrow.
+   */
+  private async skipRevisionChange(t: { status: string; skipRevision: boolean }, skip: boolean) {
+    if (skip === t.skipRevision) return {};
+    if (t.status === 'MASTERED') throw new BadRequestException('Mastered topics are already out of the revision queue');
+    if (skip) return { skipRevision: true, nextDueDay: null };
+    if (t.status !== 'COMPLETED') return { skipRevision: false };
+    const s = await this.settings.get();
+    return {
+      skipRevision: false,
+      reviewStep: 0,
+      nextDueDay: addDays(studyDay(new Date(), s.dayStartHour), s.revisionIntervals[0]),
+    };
   }
 
   async setArchived(id: string, archived: boolean): Promise<TopicDetail> {
@@ -159,6 +179,7 @@ export class TopicsService {
         fieldId,
         archivedAt: null,
         status: 'COMPLETED',
+        skipRevision: false,
         nextDueDay: { not: null, lte: addDays(today, 2) },
         activities: { none: { status: 'IN_PROGRESS' } },
       },

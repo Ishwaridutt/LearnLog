@@ -51,6 +51,8 @@ export const topicCreateSchema = z.object({
   description: optionalText(10_000),
   recallPrompt: optionalText(2000),
   links: z.array(linkSchema).max(30).optional(),
+  /** "No revision needed": the topic never enters the revision queue. */
+  skipRevision: z.boolean().optional(),
 });
 export const topicUpdateSchema = topicCreateSchema.partial();
 export type TopicCreateInput = z.input<typeof topicCreateSchema>;
@@ -59,6 +61,27 @@ export type TopicUpdateInput = z.input<typeof topicUpdateSchema>;
 export const endActivitySchema = z.object({ grade: z.enum(GRADES).optional() });
 
 export const segmentEndSchema = z.object({ endedAt: z.iso.datetime({ offset: true }) });
+
+export const segmentEditSchema = z.object({
+  startedAt: z.iso.datetime({ offset: true }),
+  endedAt: z.iso.datetime({ offset: true }),
+});
+
+/** F-22: shape of an export file accepted by import. Row contents are checked by the database. */
+export const importSchema = z.object({
+  app: z.literal('study-tracker', { message: 'Not a Study Tracker export file' }),
+  schemaVersion: z.literal(1, { message: 'Unsupported export version' }),
+  data: z.object({
+    profile: z.array(z.record(z.string(), z.unknown())).max(1),
+    settings: z.array(z.record(z.string(), z.unknown())).max(1),
+    fields: z.array(z.record(z.string(), z.unknown())),
+    topics: z.array(z.record(z.string(), z.unknown())),
+    links: z.array(z.record(z.string(), z.unknown())),
+    activities: z.array(z.record(z.string(), z.unknown())),
+    segments: z.array(z.record(z.string(), z.unknown())),
+  }),
+});
+export type ImportFile = z.infer<typeof importSchema>;
 
 export const topicListQuerySchema = z.object({
   tab: z.enum(['all', 'ongoing', 'revised']).default('all'),

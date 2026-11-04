@@ -1,16 +1,21 @@
-import { Controller, Get, Header, Module, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Header, HttpCode, Module, Post, Res } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { Response } from 'express';
-import { localDay } from '@study/shared';
+import { ImportFile, importSchema, localDay } from '@study/shared';
+import { ZodPipe } from '../common/zod.pipe';
 import { PrismaService } from '../prisma/prisma.service';
 
 export const EXPORT_SCHEMA_VERSION = 1;
 
-@Controller('export')
+// Rows come straight from an export file; the database validates their columns.
+type Rows = any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+@Controller()
 export class BackupController {
   constructor(private readonly prisma: PrismaService) {}
 
   /** F-17: full JSON dump of every table. */
-  @Get()
+  @Get('export')
   @Header('Content-Type', 'application/json; charset=utf-8')
   async export(@Res({ passthrough: true }) res: Response) {
     const [profile, settings, fields, topics, links, activities, segments] = await Promise.all([
@@ -28,6 +33,45 @@ export class BackupController {
       schemaVersion: EXPORT_SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),
       data: { profile, settings, fields, topics, links, activities, segments },
+    };
+  }
+
+  /** F-22: replace ALL data with the contents of an export file, atomically. */
+  @Post('import')
+  @HttpCode(200)
+  async import(@Body(new ZodPipe(importSchema)) file: ImportFile) {
+    const d = file.data;
+    const open = (d.segments as Rows).filter((s) => s.endedAt === null || s.endedAt === undefined).length;
+    if (open > 1) throw new BadRequestException('Invalid backup: more than one running timer');
+    try {
+      await this.prisma.$transaction(
+        async (tx) => {
+          // Children first is not needed: deleting fields cascades to topics/links/activities/segments.
+          await tx.studyField.deleteMany();
+          await tx.profile.deleteMany();
+          await tx.settings.deleteMany();
+          if (d.profile.length) await tx.profile.createMany({ data: d.profile as Rows });
+          if (d.settings.length) await tx.settings.createMany({ data: d.settings as Rows });
+          if (d.fields.length) await tx.studyField.createMany({ data: d.fields as Rows });
+          if (d.topics.length) await tx.topic.createMany({ data: d.topics as Rows });
+          if (d.links.length) await tx.topicLink.createMany({ data: d.links as Rows });
+          if (d.activities.length) await tx.activity.createMany({ data: d.activities as Rows });
+          if (d.segments.length) await tx.timeSegment.createMany({ data: d.segments as Rows });
+        },
+        { timeout: 60_000 },
+      );
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientValidationError || e instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new BadRequestException('Invalid backup file: its rows do not match this app version. Nothing was changed.');
+      }
+      throw e;
+    }
+    return {
+      imported: {
+        fields: d.fields.length,
+        topics: d.topics.length,
+        activities: d.activities.length,
+      },
     };
   }
 }

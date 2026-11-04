@@ -5,7 +5,7 @@ import { api } from '../api/client';
 import { fmtDateTime, fmtDuration, liveSeconds } from '../lib/format';
 import { useNow } from '../lib/useNow';
 import { GRADE_LABEL, GRADE_TONE } from './TopicDrawer';
-import { Badge, Button, Empty, inputBase, inputCls, Spinner } from './ui';
+import { Badge, Button, Empty, inputBase, inputCls, rowHover, Spinner } from './ui';
 
 /** F-13: every learning and revision session in this field, filterable. */
 export function HistoryTab({ fieldId, onOpen }: { fieldId: string; onOpen: (id: string) => void }) {
@@ -86,7 +86,7 @@ export function HistoryTab({ fieldId, onOpen }: { fieldId: string; onOpen: (id: 
           <p className="text-xs text-slate-500">
             {rows.data.length} session{rows.data.length === 1 ? '' : 's'} · {fmtDuration(totalSecs)}
           </p>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-surface">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs text-slate-500">
                 <tr>
@@ -99,14 +99,16 @@ export function HistoryTab({ fieldId, onOpen }: { fieldId: string; onOpen: (id: 
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rows.data.map((r) => (
-                  <tr key={r.id} className="cursor-pointer hover:bg-slate-50" onClick={() => onOpen(r.topicId)}>
+                  <tr key={r.id} className={`cursor-pointer ${rowHover}`} onClick={() => onOpen(r.topicId)}>
                     <td className="px-4 py-2 whitespace-nowrap text-slate-600">{fmtDateTime(r.completedAt ?? r.startedAt)}</td>
                     <td className="px-4 py-2 font-medium text-slate-900">
                       {r.topicName}
                       {r.topicArchived && <span className="ml-1 text-xs font-normal text-slate-400">(archived)</span>}
                     </td>
                     <td className="px-4 py-2">
-                      <Badge tone={r.type === 'LEARNING' ? 'indigo' : 'violet'}>{r.type === 'LEARNING' ? 'Learned' : 'Revised'}</Badge>
+                      <Badge tone={r.type === 'LEARNING' ? 'indigo' : 'violet'}>
+                        {r.status === 'IN_PROGRESS' ? (r.type === 'LEARNING' ? 'Learning' : 'Revising') : r.type === 'LEARNING' ? 'Learned' : 'Revised'}
+                      </Badge>
                     </td>
                     <td className="px-4 py-2 font-mono text-xs text-slate-600">{fmtDuration(liveSeconds(r.totalSeconds, r.liveSince, now))}</td>
                     <td className="px-4 py-2">

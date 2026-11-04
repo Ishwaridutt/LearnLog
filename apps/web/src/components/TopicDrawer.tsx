@@ -1,15 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import type { Grade, TopicDetail } from '@study/shared';
+import type { Grade, Segment, TopicDetail } from '@study/shared';
 import { api } from '../api/client';
-import { fmtClock, fmtDate, fmtDateTime, fmtDay, fmtDuration, fmtTime, liveSeconds, relDay } from '../lib/format';
+import { fmtClock, fmtDate, fmtDateTime, fmtDay, fmtDuration, fmtTime, liveSeconds, relDay, toLocalInput } from '../lib/format';
 import { useNow } from '../lib/useNow';
 import { LinkList } from './LinkList';
 import { StatusBadge } from './StatusBadge';
 import { TopicActions } from './TopicActions';
 import { toTopicInput, TopicFormFields, type TopicFormValue } from './TopicForm';
 import { useToast } from './Toasts';
-import { Badge, Button, ErrorText, Modal, Spinner } from './ui';
+import { Badge, Button, ErrorText, inputBase, Modal, Spinner } from './ui';
 
 export const GRADE_TONE: Record<Grade, 'red' | 'amber' | 'green'> = { FORGOT: 'red', HARD: 'amber', GOOD: 'green' };
 export const GRADE_LABEL: Record<Grade, string> = { FORGOT: 'Forgot', HARD: 'Hard', GOOD: 'Good' };
@@ -28,15 +28,15 @@ export function TopicDrawer({ topicId, today, onClose }: { topicId: string; toda
   useEffect(() => setEditing(false), [topicId]);
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/20" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-40 flex justify-end bg-black/30" onMouseDown={onClose}>
       <aside
-        className="flex h-full w-full max-w-xl flex-col overflow-y-auto bg-white shadow-2xl"
+        className="flex h-full w-full max-w-xl flex-col overflow-y-auto bg-surface shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
         aria-label="Topic details"
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 py-3">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-surface px-5 py-3">
           <span className="text-xs font-medium tracking-wide text-slate-500 uppercase">{topic.data?.fieldName ?? 'Topic'}</span>
-          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Close">
+          <button onClick={onClose} className="rounded-md p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600" aria-label="Close">
             ✕
           </button>
         </div>
@@ -91,6 +91,7 @@ function TopicView({
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={t.status} />
           {t.archivedAt && <Badge>Archived</Badge>}
+          {t.skipRevision && <Badge tone="sky">No revision needed</Badge>}
           <span className="text-sm text-slate-500">{fmtDuration(liveSeconds(t.timeSeconds, t.liveSince, now))} total</span>
         </div>
         {t.description && <p className="text-sm whitespace-pre-wrap text-slate-700">{t.description}</p>}
@@ -109,9 +110,17 @@ function TopicView({
         <Info label="Last revised" value={t.status === 'NOT_STARTED' || t.status === 'IN_PROGRESS' ? '—' : t.lastRevisedAt ? fmtDate(t.lastRevisedAt) : 'Not yet'} />
         <Info
           label="Next revision"
-          value={t.status === 'MASTERED' ? 'Mastered' : t.nextDueDay ? `${fmtDay(t.nextDueDay)} (${relDay(t.nextDueDay, today)})` : '—'}
+          value={
+            t.status === 'MASTERED'
+              ? 'Mastered'
+              : t.skipRevision
+                ? 'Not needed'
+                : t.nextDueDay
+                  ? `${fmtDay(t.nextDueDay)} (${relDay(t.nextDueDay, today)})`
+                  : '—'
+          }
         />
-        {t.reviewStep !== null && <Info label="Step" value={`${Math.min(t.reviewStep, steps)}/${steps}`} />}
+        {t.reviewStep !== null && !t.skipRevision && <Info label="Step" value={`${Math.min(t.reviewStep + 1, steps)}/${steps}`} />}
         <Info label="Revisions" value={String(t.revisionCount)} />
         <Info label="Forgot" value={String(t.forgotCount)} />
       </div>
@@ -121,10 +130,25 @@ function TopicView({
         {t.status === 'MASTERED' && !t.openActivity && (
           <Button onClick={() => mutate.mutate(() => api.pullBack(t.id))}>Pull back into revisions</Button>
         )}
+        {/* For a completed skipped topic, TopicActions already shows "Schedule revisions". */}
+        {t.status !== 'MASTERED' && !t.archivedAt && !(t.skipRevision && t.status === 'COMPLETED') && (
+          <Button
+            variant="ghost"
+            title={t.skipRevision ? 'Put this topic back into the revision queue (first revision tomorrow)' : 'Never schedule revisions for this topic'}
+            onClick={() =>
+              mutate.mutate(async () => {
+                await api.updateTopic(t.id, { skipRevision: !t.skipRevision });
+                toast(t.skipRevision ? 'Revisions turned back on. First one is due tomorrow.' : 'Marked as no revision needed.', 'success');
+              })
+            }
+          >
+            {t.skipRevision ? '↻ Schedule revisions' : '⊘ No revision needed'}
+          </Button>
+        )}
         <Button variant="ghost" onClick={() => mutate.mutate(() => api.archiveTopic(t.id, !t.archivedAt))}>
           {t.archivedAt ? 'Unarchive' : 'Archive'}
         </Button>
-        <Button variant="ghost" className="text-rose-600 hover:bg-rose-50" onClick={() => setConfirmDelete(true)}>
+        <Button variant="ghostDanger" onClick={() => setConfirmDelete(true)}>
           Delete
         </Button>
       </div>
@@ -179,10 +203,12 @@ function Timeline({ topic, now }: { topic: TopicDetail; now: number }) {
           const learning = a.type === 'LEARNING';
           return (
             <li key={a.id} className="relative">
-              <span className={`absolute top-1.5 -left-[27px] h-3 w-3 rounded-full ring-4 ring-white ${learning ? 'bg-indigo-500' : 'bg-violet-500'}`} />
+              <span className={`absolute top-1.5 -left-[27px] h-3 w-3 rounded-full ring-4 ring-surface ${learning ? 'bg-indigo-500' : 'bg-violet-500'}`} />
               <details className="rounded-lg border border-slate-200 px-3 py-2">
                 <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 text-sm">
-                  <Badge tone={learning ? 'indigo' : 'violet'}>{learning ? 'Learned' : 'Revised'}</Badge>
+                  <Badge tone={learning ? 'indigo' : 'violet'}>
+                    {a.status === 'IN_PROGRESS' ? (learning ? 'Learning' : 'Revising') : learning ? 'Learned' : 'Revised'}
+                  </Badge>
                   <span className="text-slate-700">{fmtDateTime(a.completedAt ?? a.startedAt)}</span>
                   <span className="font-mono text-xs text-slate-500">
                     {a.status === 'IN_PROGRESS' ? fmtClock(liveSeconds(a.totalSeconds, a.liveSince, now)) : fmtDuration(a.totalSeconds)}
@@ -194,10 +220,7 @@ function Timeline({ topic, now }: { topic: TopicDetail; now: number }) {
                 </summary>
                 <ul className="mt-2 space-y-1 border-t border-slate-100 pt-2 text-xs text-slate-500">
                   {a.segments.map((s) => (
-                    <li key={s.id} className="font-mono">
-                      {fmtDateTime(s.startedAt)} → {s.endedAt ? fmtTime(s.endedAt) : 'now'}
-                      {s.edited && <span className="ml-1 font-sans text-amber-700">(edited)</span>}
-                    </li>
+                    <SegmentRow key={s.id} segment={s} canDelete={a.segments.length > 1} />
                   ))}
                 </ul>
               </details>
@@ -216,6 +239,7 @@ function EditTopic({ topic, onDone }: { topic: TopicDetail; onDone: () => void }
     description: topic.description ?? '',
     recallPrompt: topic.recallPrompt ?? '',
     links: topic.links.map((l) => ({ label: l.label, url: l.url })),
+    skipRevision: topic.skipRevision,
   });
   const save = useMutation({
     mutationFn: () => api.updateTopic(topic.id, toTopicInput(value)),
@@ -242,5 +266,96 @@ function EditTopic({ topic, onDone }: { topic: TopicDetail; onDone: () => void }
         </Button>
       </div>
     </form>
+  );
+}
+
+/** F-20: one timed stretch, editable once it has ended. */
+function SegmentRow({ segment: s, canDelete }: { segment: Segment; canDelete: boolean }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [editing, setEditing] = useState(false);
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const save = useMutation({
+    mutationFn: () => api.editSegment(s.id, new Date(start).toISOString(), new Date(end).toISOString()),
+    onSuccess: () => {
+      setEditing(false);
+      qc.invalidateQueries();
+      toast('Session time updated', 'success');
+    },
+  });
+  const remove = useMutation({
+    mutationFn: () => api.deleteSegment(s.id),
+    onSuccess: () => {
+      qc.invalidateQueries();
+      toast('Session removed');
+    },
+    onError: (e) => toast(e.message, 'error'),
+  });
+  const secs = s.endedAt ? (Date.parse(s.endedAt) - Date.parse(s.startedAt)) / 1000 : null;
+
+  if (editing) {
+    return (
+      <li className="space-y-2 rounded-lg bg-slate-50 p-2 font-sans">
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="text-xs text-slate-500">
+            Start
+            <input type="datetime-local" className={`${inputBase} mt-0.5 block py-1`} value={start} onChange={(e) => setStart(e.target.value)} />
+          </label>
+          <label className="text-xs text-slate-500">
+            End
+            <input
+              type="datetime-local"
+              className={`${inputBase} mt-0.5 block py-1`}
+              value={end}
+              min={start}
+              max={toLocalInput(new Date())}
+              onChange={(e) => setEnd(e.target.value)}
+            />
+          </label>
+          <Button size="sm" variant="primary" disabled={!start || !end || save.isPending} onClick={() => save.mutate()}>
+            Save
+          </Button>
+          <Button size="sm" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+        <ErrorText error={save.error} />
+      </li>
+    );
+  }
+  return (
+    <li className="group flex items-center gap-2 font-mono">
+      <span>
+        {fmtDateTime(s.startedAt)} → {s.endedAt ? fmtTime(s.endedAt) : 'now'}
+        {secs !== null && <span className="ml-1 text-slate-400">({fmtDuration(secs)})</span>}
+        {s.edited && <span className="ml-1 font-sans text-amber-700">(edited)</span>}
+      </span>
+      {s.endedAt && (
+        <span className="ml-auto flex gap-1 font-sans opacity-60 group-hover:opacity-100">
+          <button
+            type="button"
+            className="rounded px-1.5 py-0.5 text-indigo-700 hover:bg-indigo-50"
+            onClick={() => {
+              setStart(toLocalInput(new Date(s.startedAt)));
+              setEnd(toLocalInput(new Date(s.endedAt!)));
+              setEditing(true);
+            }}
+          >
+            Edit
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              className="rounded px-1.5 py-0.5 text-rose-700 hover:bg-rose-50"
+              disabled={remove.isPending}
+              onClick={() => window.confirm('Remove this session? Its time is subtracted from the totals.') && remove.mutate()}
+            >
+              Remove
+            </button>
+          )}
+        </span>
+      )}
+    </li>
   );
 }

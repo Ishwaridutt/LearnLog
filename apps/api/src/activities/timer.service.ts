@@ -122,7 +122,8 @@ export class TimerService {
           type: 'REVISION',
           status: 'IN_PROGRESS',
           startedAt: now,
-          isEarly: isEarlyRevision({ status: topic.status as TopicStatus, nextDueDay: topic.nextDueDay }, today),
+          // A "no revision needed" topic can still be practised; it never moves a schedule.
+          isEarly: topic.skipRevision || isEarlyRevision({ status: topic.status as TopicStatus, nextDueDay: topic.nextDueDay }, today),
           stepAtStart: topic.reviewStep,
           dueDayAtStart: topic.nextDueDay,
         },
@@ -182,10 +183,13 @@ export class TimerService {
 
       const topic = activity.topic;
       if (activity.type === 'LEARNING') {
-        await tx.topic.update({
-          where: { id: topic.id },
-          data: { ...scheduleAfterLearning(day, s.revisionIntervals), completedAt: now },
-        });
+        const schedule = topic.skipRevision
+          ? { status: 'COMPLETED', reviewStep: null, nextDueDay: null }
+          : scheduleAfterLearning(day, s.revisionIntervals);
+        await tx.topic.update({ where: { id: topic.id }, data: { ...schedule, completedAt: now } });
+      } else if (topic.skipRevision) {
+        // Practice on a "no revision needed" topic: log it, never schedule.
+        await tx.topic.update({ where: { id: topic.id }, data: { lastRevisedAt: now, revisionCount: { increment: 1 } } });
       } else {
         const current: ScheduleState = {
           status: topic.status as TopicStatus,
@@ -244,5 +248,69 @@ export class TimerService {
       .sort((a, b) => lastTouched(b) - lastTouched(a))
       .map(toTimer);
     return { running: runningAct ? toTimer(runningAct) : null, paused };
+  }
+
+  /** Recompute an activity's cached total from its closed segments. */
+  private async recomputeTotal(tx: Tx, activityId: string) {
+    const segs = await tx.timeSegment.findMany({ where: { activityId, endedAt: { not: null } } });
+    const total = segs.reduce((s, x) => s + Math.round((x.endedAt!.getTime() - x.startedAt.getTime()) / 1000), 0);
+    await tx.activity.update({ where: { id: activityId }, data: { totalSeconds: total } });
+  }
+
+  /**
+   * F-20: correct a finished segment's start/end. Segments may not overlap any other
+   * segment (one timer app-wide). Editing time never re-runs scheduling.
+   */
+  editSegment(segmentId: string, startedAt: Date, endedAt: Date): Promise<ActionResult> {
+    return this.prisma.$transaction(async (tx) => {
+      const seg = await tx.timeSegment.findUnique({ where: { id: segmentId } });
+      if (!seg) throw new NotFoundException('Session not found');
+      if (!seg.endedAt) throw new BadRequestException('Pause or end this session before editing it');
+      if (endedAt <= startedAt) throw new BadRequestException('End time must be after the start time');
+      if (endedAt > new Date()) throw new BadRequestException('End time cannot be in the future');
+
+      const now = new Date();
+      const others = await tx.timeSegment.findMany({
+        where: { id: { not: segmentId }, startedAt: { lt: endedAt }, OR: [{ endedAt: null }, { endedAt: { gt: startedAt } }] },
+        include: { activity: { include: { topic: { select: { name: true } } } } },
+      });
+      const clash = others.find((o) => (o.endedAt ?? now) > startedAt);
+      if (clash) {
+        throw new BadRequestException(
+          `That overlaps a session on "${clash.activity.topic.name}" (${clash.startedAt.toLocaleString()}). Only one timer runs at a time.`,
+        );
+      }
+      await tx.timeSegment.update({ where: { id: segmentId }, data: { startedAt, endedAt, edited: true } });
+      await this.recomputeTotal(tx, seg.activityId);
+      return { autoPaused: null };
+    });
+  }
+
+  /** F-20: remove a mistaken finished segment. An activity always keeps at least one. */
+  deleteSegment(segmentId: string): Promise<ActionResult> {
+    return this.prisma.$transaction(async (tx) => {
+      const seg = await tx.timeSegment.findUnique({ where: { id: segmentId } });
+      if (!seg) throw new NotFoundException('Session not found');
+      if (!seg.endedAt) throw new BadRequestException('Pause or end this session before deleting it');
+      const count = await tx.timeSegment.count({ where: { activityId: seg.activityId } });
+      if (count <= 1) {
+        throw new BadRequestException("This is the only session of this activity. Edit its time instead, or cancel/delete the topic.");
+      }
+      await tx.timeSegment.delete({ where: { id: segmentId } });
+      await this.recomputeTotal(tx, seg.activityId);
+      return { autoPaused: null };
+    });
+  }
+
+  /** F-23: discard an in-progress revision. Nothing is recorded and the schedule is untouched. */
+  cancelRevision(activityId: string): Promise<ActionResult> {
+    return this.prisma.$transaction(async (tx) => {
+      const activity = await tx.activity.findUnique({ where: { id: activityId } });
+      if (!activity) throw new NotFoundException('Activity not found');
+      if (activity.type !== 'REVISION') throw new BadRequestException('Only revisions can be cancelled');
+      if (activity.status !== 'IN_PROGRESS') throw new BadRequestException('This revision is already finished');
+      await tx.activity.delete({ where: { id: activityId } });
+      return { autoPaused: null };
+    });
   }
 }

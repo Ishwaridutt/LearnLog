@@ -5,7 +5,7 @@ import { api } from '../api/client';
 import { fmtDay } from '../lib/format';
 import { Spinner } from './ui';
 
-const HEAT = ['bg-slate-100', 'bg-emerald-200', 'bg-emerald-400', 'bg-emerald-600', 'bg-emerald-800'];
+const HEAT = ['bg-[var(--heat-0)]', 'bg-[var(--heat-1)]', 'bg-[var(--heat-2)]', 'bg-[var(--heat-3)]', 'bg-[var(--heat-4)]'];
 
 const tip = (d: CalendarDay) =>
   `${fmtDay(d.day)}: ${d.minutes} min · ${d.learnings} learned · ${d.revisions} revised`;
@@ -23,7 +23,7 @@ export function StreakCard() {
   const view = settings.data?.calendarView ?? 'HEATMAP';
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <section className="rounded-2xl border border-slate-200 bg-surface p-5">
       <div className="flex flex-wrap items-center gap-6">
         <Stat label="Current streak" value={streak.data?.current} accent>
           {streak.data && !streak.data.todayQualified && streak.data.current > 0 && (
@@ -35,7 +35,7 @@ export function StreakCard() {
           <label className="flex items-center gap-2 text-sm text-slate-600">
             View
             <select
-              className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm"
+              className="rounded-lg border border-slate-300 bg-surface px-2 py-1 text-sm"
               value={view}
               onChange={(e) => setView.mutate(e.target.value as CalendarView)}
             >
@@ -129,57 +129,86 @@ function Heatmap({ days, today }: { days: CalendarDay[]; today: Day }) {
 
 function TickCalendar({ days, today }: { days: CalendarDay[]; today: Day }) {
   const byDay = useMemo(() => new Map(days.map((d) => [d.day, d])), [days]);
-  const [month, setMonth] = useState(today.slice(0, 7)); // YYYY-MM
-  const first = `${month}-01`;
-  const [y, m] = month.split('-').map(Number);
-  const daysInMonth = new Date(y, m, 0).getDate();
-  const lead = dayOfWeek(first);
-  const cells: (Day | null)[] = [...Array(lead).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => addDays(first, i))];
-  const shift = (n: number) => {
-    const d = new Date(y, m - 1 + n, 1);
-    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  // The rightmost of the three months shown; never later than the current month.
+  const [end, setEnd] = useState(today.slice(0, 7)); // YYYY-MM
+  const [ey, em] = end.split('-').map(Number);
+  const monthAt = (offset: number) => {
+    const d = new Date(ey, em - 1 + offset, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   };
-  const studied = cells.filter((d) => d && (byDay.get(d)?.learnings || byDay.get(d)?.revisions)).length;
+  const months = [monthAt(-2), monthAt(-1), end];
+  const atLatest = end >= today.slice(0, 7);
 
   return (
-    <div className="max-w-md">
-      <div className="mb-2 flex items-center justify-between">
-        <button className="rounded px-2 py-1 text-slate-600 hover:bg-slate-100" onClick={() => shift(-1)} aria-label="Previous month">
-          ‹
-        </button>
-        <p className="text-sm font-medium text-slate-800">
-          {new Date(y, m - 1, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' })}
-          <span className="ml-2 text-xs font-normal text-slate-500">{studied} study days</span>
-        </p>
-        <button
-          className="rounded px-2 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30"
-          onClick={() => shift(1)}
-          disabled={month >= today.slice(0, 7)}
-          aria-label="Next month"
-        >
-          ›
-        </button>
+    <div className="flex items-start gap-2">
+      <NavButton label="Earlier months" onClick={() => setEnd(monthAt(-1))}>
+        ‹
+      </NavButton>
+      <div className="flex flex-1 flex-wrap justify-around gap-x-6 gap-y-4">
+        {months.map((m) => (
+          <MiniMonth key={m} month={m} today={today} byDay={byDay} />
+        ))}
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-          <span key={d} className="py-1 text-slate-500">
+      <NavButton label="Later months" disabled={atLatest} onClick={() => setEnd(monthAt(1))}>
+        ›
+      </NavButton>
+    </div>
+  );
+}
+
+function NavButton({ label, disabled, onClick, children }: { label: string; disabled?: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="mt-6 rounded-md px-2 py-1 text-slate-600 transition-colors enabled:hover:bg-indigo-50 enabled:hover:text-indigo-700 disabled:opacity-30"
+    >
+      {children}
+    </button>
+  );
+}
+
+/** One month as a compact 7-column grid of small cells (F-29). */
+function MiniMonth({ month, today, byDay }: { month: string; today: Day; byDay: Map<Day, CalendarDay> }) {
+  const [y, m] = month.split('-').map(Number);
+  const first = `${month}-01`;
+  const count = new Date(y, m, 0).getDate();
+  const cells: (Day | null)[] = [...Array(dayOfWeek(first)).fill(null), ...Array.from({ length: count }, (_, i) => addDays(first, i))];
+  const studied = cells.filter((d) => {
+    const e = d && byDay.get(d);
+    return e && (e.learnings || e.revisions);
+  }).length;
+
+  return (
+    <div>
+      <p className="mb-1 flex items-baseline justify-between gap-3 text-xs">
+        <span className="font-medium text-slate-700">{new Date(y, m - 1, 1).toLocaleString(undefined, { month: 'short', year: 'numeric' })}</span>
+        <span className="text-slate-500">{studied} days</span>
+      </p>
+      <div className="grid grid-cols-7 gap-[3px]">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          <span key={i} className="h-3 w-[22px] text-center text-[9px] leading-3 text-slate-400">
             {d}
           </span>
         ))}
         {cells.map((d, i) => {
-          if (!d) return <span key={`x${i}`} />;
+          if (!d) return <span key={`x${i}`} className="h-[22px] w-[22px]" />;
           const e = byDay.get(d);
-          const ok = !!(e && (e.learnings || e.revisions));
+          const qualified = !!(e && (e.learnings || e.revisions));
+          const future = d > today;
+          const bg = future ? '' : qualified ? HEAT[Math.max(2, heatLevel(e!.minutes))] : e && e.minutes > 0 ? HEAT[1] : HEAT[0];
+          const text = qualified && heatLevel(e!.minutes) >= 3 ? 'text-white dark:text-gray-900' : future ? 'text-slate-300' : 'text-slate-600';
           return (
             <span
               key={d}
               title={e ? tip(e) : fmtDay(d)}
-              className={`flex aspect-square flex-col items-center justify-center rounded-lg ${
-                ok ? 'bg-emerald-100 text-emerald-800' : d > today ? 'text-slate-300' : 'bg-slate-50 text-slate-500'
-              } ${d === today ? 'ring-2 ring-indigo-400' : ''}`}
+              className={`grid h-[22px] w-[22px] place-items-center rounded-[4px] text-[10px] tabular-nums ${bg} ${text} ${
+                d === today ? 'ring-2 ring-indigo-500' : ''
+              }`}
             >
-              <span>{Number(d.slice(8))}</span>
-              {ok && <span className="text-[11px] leading-none">✓</span>}
+              {Number(d.slice(8))}
             </span>
           );
         })}

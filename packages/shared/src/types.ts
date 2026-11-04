@@ -98,6 +98,8 @@ export interface Topic {
   lastRevisedAt: string | null;
   revisionCount: number;
   forgotCount: number;
+  /** "No revision needed": completed but never scheduled for revision. */
+  skipRevision: boolean;
   archivedAt: string | null;
   createdAt: string;
   links: Link[];
