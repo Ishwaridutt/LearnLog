@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { fmtClock, liveSeconds } from '../lib/format';
@@ -12,6 +13,21 @@ export function TimerBar() {
   const actions = useActions();
   const shown = timer.data?.running ?? timer.data?.paused[0] ?? null;
   const now = useNow(!!timer.data?.running);
+  const barRef = useRef<HTMLDivElement>(null);
+
+  // Publish the bar's height so full-height overlays (the topic drawer) can stop above it.
+  useEffect(() => {
+    const el = barRef.current;
+    const root = document.documentElement.style;
+    if (!el) return;
+    const ro = new ResizeObserver(() => root.setProperty('--timer-bar-h', `${el.offsetHeight}px`));
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.setProperty('--timer-bar-h', '0px');
+    };
+  }, [!!shown]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!shown) return null;
 
   const otherPaused = (timer.data?.paused.length ?? 0) - (timer.data?.running ? 0 : 1);
@@ -21,7 +37,7 @@ export function TimerBar() {
   return (
     <>
       <div className="h-20" aria-hidden />
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-surface/95 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
+      <div ref={barRef} className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-surface/95 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
           <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${running ? 'animate-pulse bg-emerald-500' : 'bg-amber-400'}`} />
           <div className="min-w-0 flex-1">

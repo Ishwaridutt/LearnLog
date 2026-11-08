@@ -154,6 +154,7 @@ export class TopicsService {
     if (q.q) where.name = { contains: q.q }; // SQLite LIKE: case-insensitive for ASCII
     if (q.status) where.status = q.status;
     if (q.tab === 'revised') where.revisionCount = { gt: 0 };
+    if (q.tab === 'completed' && !q.status) where.status = { in: ['COMPLETED', 'MASTERED'] };
     if (q.tab === 'ongoing') where.activities = { some: { status: 'IN_PROGRESS' } };
 
     const [rows, open] = await Promise.all([

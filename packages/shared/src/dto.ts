@@ -94,7 +94,7 @@ export const importSchema = z.object({
 export type ImportFile = z.infer<typeof importSchema>;
 
 export const topicListQuerySchema = z.object({
-  tab: z.enum(['all', 'ongoing', 'revised']).default('all'),
+  tab: z.enum(['all', 'ongoing', 'completed', 'revised']).default('all'),
   q: z.string().trim().max(200).optional(),
   sort: z.enum(['createdAt', 'completedAt']).default('createdAt'),
   order: z.enum(['asc', 'desc']).default('desc'),

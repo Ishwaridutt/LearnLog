@@ -139,6 +139,7 @@ function aggregate(
     tabs: {
       ongoing: ongoing.length,
       all: visible.length,
+      completed: tile.completedCount,
       revised: visible.filter((t) => t.revisionCount > 0).length,
       due: dueCount,
       upcoming: upcomingCount,

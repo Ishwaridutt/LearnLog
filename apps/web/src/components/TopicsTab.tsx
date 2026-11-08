@@ -24,14 +24,16 @@ export function TopicsTab({
   onAdd,
 }: {
   fieldId: string;
-  tab: 'all' | 'ongoing' | 'revised';
+  tab: 'all' | 'ongoing' | 'completed' | 'revised';
   today: string;
   onOpen: (id: string) => void;
   onAdd?: () => void;
 }) {
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
-  const [sort, setSort] = useState<TopicListQuery['sort']>('createdAt');
+  // Completed tab: most recently finished first by default.
+  const defaultSort: TopicListQuery['sort'] = tab === 'completed' ? 'completedAt' : 'createdAt';
+  const [sort, setSort] = useState<TopicListQuery['sort']>(defaultSort);
   const [order, setOrder] = useState<TopicListQuery['order']>('desc');
   const [status, setStatus] = useState<TopicStatus | ''>('');
 
@@ -47,6 +49,14 @@ export function TopicsTab({
     placeholderData: keepPreviousData,
   });
   const anyLive = !!topics.data?.some((t) => t.liveSince);
+  const filtersChanged = !!search || !!status || sort !== defaultSort || order !== 'desc';
+  const clearFilters = () => {
+    setSearch('');
+    setQ('');
+    setSort(defaultSort);
+    setOrder('desc');
+    setStatus('');
+  };
   const now = useNow(anyLive);
 
   return (
@@ -69,15 +79,20 @@ export function TopicsTab({
             <option value="desc">Newest first</option>
             <option value="asc">Oldest first</option>
           </select>
-          {tab === 'all' && (
+          {(tab === 'all' || tab === 'completed') && (
             <select className={`${inputBase}`} value={status} onChange={(e) => setStatus(e.target.value as TopicStatus | '')} aria-label="Status">
-              <option value="">All statuses</option>
-              {TOPIC_STATUSES.map((s) => (
+              <option value="">{tab === 'completed' ? 'Completed + mastered' : 'All statuses'}</option>
+              {TOPIC_STATUSES.filter((s) => tab !== 'completed' || s === 'COMPLETED' || s === 'MASTERED').map((s) => (
                 <option key={s} value={s}>
                   {STATUS_LABEL[s]}
                 </option>
               ))}
             </select>
+          )}
+          {filtersChanged && (
+            <Button variant="ghost" onClick={clearFilters} title="Reset search, sort and status">
+              ✕ Clear filters
+            </Button>
           )}
         </div>
       )}
@@ -86,9 +101,15 @@ export function TopicsTab({
         <Spinner />
       ) : !topics.data?.length ? (
         q || status ? (
-          <Empty title="No topics match your filters" />
+          <Empty title="No topics match your filters">
+            <div className="mt-3">
+              <Button onClick={clearFilters}>✕ Clear filters</Button>
+            </div>
+          </Empty>
         ) : tab === 'ongoing' ? (
           <Empty title="Nothing in progress">Start a topic or a revision and it shows up here until you end it.</Empty>
+        ) : tab === 'completed' ? (
+          <Empty title="No completed topics yet">Press End on a topic when you finish learning it and it shows up here.</Empty>
         ) : tab === 'revised' ? (
           <Empty title="No revisions yet">Completed topics come up for revision the next day.</Empty>
         ) : (
@@ -122,7 +143,7 @@ function TopicRow({
   onOpen,
 }: {
   topic: Topic;
-  tab: 'all' | 'ongoing' | 'revised';
+  tab: 'all' | 'ongoing' | 'completed' | 'revised';
   today: string;
   now: number;
   onOpen: (id: string) => void;

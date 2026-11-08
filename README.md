@@ -14,7 +14,7 @@ Works for anything you study: coding interviews, exams, languages.
   - Good moves to the next step, Hard repeats the step, Forgot goes back to step 1.
   - The next interval counts from the day you **actually** revised, so being late never stacks up penalties.
 - **Recall first**: revisions show your recall prompt before revealing notes and links.
-- **Subject page** with total / learning / revision time, recall rate, and tabs: Ongoing · All topics · Revised · Revisions (due now, capped at 5/day, plus the next 2 days) · History.
+- **Subject page** with total / learning / revision time, recall rate, and tabs: Ongoing · All topics · Completed · Revised · Revisions (due now, capped at 5/day, plus the next 2 days) · History.
 - **Streaks**: completing any topic or revision counts for the day. Current and longest streak, shown as a heatmap or a month calendar.
 - **Long-session guard**: if a timer has run for 3h+, the app asks whether you forgot to stop it.
 - **Fix your time log**: edit or remove any finished session; overlapping sessions are rejected.

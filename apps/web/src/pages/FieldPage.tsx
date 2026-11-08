@@ -17,7 +17,7 @@ import { Badge, Button, ErrorText, inputCls, Modal, Spinner } from '../component
 import { fmtDuration, liveSeconds } from '../lib/format';
 import { useNow } from '../lib/useNow';
 
-const TABS = ['ongoing', 'all', 'revised', 'revisions', 'weak', 'history'] as const;
+const TABS = ['ongoing', 'all', 'completed', 'revised', 'revisions', 'weak', 'history'] as const;
 type Tab = (typeof TABS)[number];
 
 export function FieldPage() {
@@ -52,6 +52,7 @@ export function FieldPage() {
   const tabLabel: Record<Tab, [string, number | null, boolean?]> = {
     ongoing: ['Ongoing', s.tabs.ongoing],
     all: ['All topics', s.tabs.all],
+    completed: ['Completed', s.tabs.completed],
     revised: ['Revised', s.tabs.revised],
     revisions: ['Revisions', s.tabs.due, s.tabs.due > 0],
     weak: ['Weak spots', s.tabs.weak],
@@ -102,6 +103,7 @@ export function FieldPage() {
       {tab === 'all' && (
         <TopicsTab fieldId={fieldId} tab="all" today={s.today} onOpen={openTopic} onAdd={archived ? undefined : () => setAdding(true)} />
       )}
+      {tab === 'completed' && <TopicsTab fieldId={fieldId} tab="completed" today={s.today} onOpen={openTopic} />}
       {tab === 'revised' && <TopicsTab fieldId={fieldId} tab="revised" today={s.today} onOpen={openTopic} />}
       {tab === 'revisions' && <RevisionsTab fieldId={fieldId} onOpen={openTopic} />}
       {tab === 'weak' && <WeakTab fieldId={fieldId} today={s.today} onOpen={openTopic} />}

@@ -28,7 +28,7 @@ export function TopicDrawer({ topicId, today, onClose }: { topicId: string; toda
   useEffect(() => setEditing(false), [topicId]);
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/30" onMouseDown={onClose}>
+    <div className="fixed inset-x-0 top-0 bottom-[var(--timer-bar-h,0px)] z-40 flex justify-end bg-black/30" onMouseDown={onClose}>
       <aside
         className="flex h-full w-full max-w-xl flex-col overflow-y-auto bg-surface shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
@@ -73,6 +73,8 @@ function TopicView({
   const toast = useToast();
   const now = useNow(!!t.liveSince);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingTime, setEditingTime] = useState(false);
+  const done = t.status === 'COMPLETED' || t.status === 'MASTERED';
   const mutate = useMutation({
     mutationFn: (fn: () => Promise<unknown>) => fn(),
     onSuccess: () => qc.invalidateQueries(),
@@ -145,6 +147,11 @@ function TopicView({
             {t.skipRevision ? '↻ Schedule revisions' : '⊘ No revision needed'}
           </Button>
         )}
+        {done && (
+          <Button variant="ghost" onClick={() => setEditingTime(true)} title="Correct the start and end times of finished sessions">
+            ⏱ Edit time
+          </Button>
+        )}
         <Button variant="ghost" onClick={() => mutate.mutate(() => api.archiveTopic(t.id, !t.archivedAt))}>
           {t.archivedAt ? 'Unarchive' : 'Archive'}
         </Button>
@@ -154,6 +161,8 @@ function TopicView({
       </div>
 
       <Timeline topic={t} now={now} />
+
+      <EditTimeModal topic={t} open={editingTime} onClose={() => setEditingTime(false)} />
 
       <Modal
         open={confirmDelete}
@@ -269,8 +278,52 @@ function EditTopic({ topic, onDone }: { topic: TopicDetail; onDone: () => void }
   );
 }
 
+/** F-20: every finished session of a topic in one place, so time taken can be corrected after completion. */
+function EditTimeModal({ topic: t, open, onClose }: { topic: TopicDetail; open: boolean; onClose: () => void }) {
+  const finished = t.activities.filter((a) => a.status !== 'IN_PROGRESS');
+  const total = finished.reduce((sum, a) => sum + a.totalSeconds, 0);
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Edit time taken"
+      footer={
+        <Button variant="primary" onClick={onClose}>
+          Done
+        </Button>
+      }
+    >
+      <div className="space-y-4 text-sm">
+        <p className="text-slate-600">
+          Fix the start or end of any session, or remove an extra one. Totals and the streak calendar update straight away. Finished
+          sessions total <strong className="text-slate-900">{fmtDuration(total)}</strong>.
+        </p>
+        {finished.length === 0 && <p className="text-slate-500">No finished sessions yet.</p>}
+        {finished.map((a) => {
+          const learning = a.type === 'LEARNING';
+          return (
+            <section key={a.id} className="rounded-lg border border-slate-200 p-3">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <Badge tone={learning ? 'indigo' : 'violet'}>{learning ? 'Learned' : 'Revised'}</Badge>
+                <span className="text-slate-700">{fmtDateTime(a.completedAt ?? a.startedAt)}</span>
+                {a.grade && <Badge tone={GRADE_TONE[a.grade]}>{GRADE_LABEL[a.grade]}</Badge>}
+                <span className="ml-auto font-mono text-xs text-slate-600">{fmtDuration(a.totalSeconds)}</span>
+              </div>
+              <ul className="space-y-1 text-xs text-slate-500">
+                {a.segments.map((s) => (
+                  <SegmentRow key={s.id} segment={s} canDelete={a.segments.length > 1} alwaysShowActions />
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
+    </Modal>
+  );
+}
+
 /** F-20: one timed stretch, editable once it has ended. */
-function SegmentRow({ segment: s, canDelete }: { segment: Segment; canDelete: boolean }) {
+function SegmentRow({ segment: s, canDelete, alwaysShowActions = false }: { segment: Segment; canDelete: boolean; alwaysShowActions?: boolean }) {
   const qc = useQueryClient();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
@@ -332,7 +385,7 @@ function SegmentRow({ segment: s, canDelete }: { segment: Segment; canDelete: bo
         {s.edited && <span className="ml-1 font-sans text-amber-700">(edited)</span>}
       </span>
       {s.endedAt && (
-        <span className="ml-auto flex gap-1 font-sans opacity-60 group-hover:opacity-100">
+        <span className={`ml-auto flex gap-1 font-sans ${alwaysShowActions ? '' : 'opacity-60 group-hover:opacity-100'}`}>
           <button
             type="button"
             className="rounded px-1.5 py-0.5 text-indigo-700 hover:bg-indigo-50"

@@ -70,9 +70,10 @@ export function HistoryTab({ fieldId, onOpen }: { fieldId: string; onOpen: (id: 
               setFrom('');
               setTo('');
               setSearch('');
+              setQ('');
             }}
           >
-            Clear
+            ✕ Clear filters
           </Button>
         )}
       </div>

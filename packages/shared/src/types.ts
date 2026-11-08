@@ -59,7 +59,7 @@ export interface FieldSummary {
   counts: { notStarted: number; inProgress: number; completed: number; mastered: number };
   /** Good ÷ graded on-schedule revisions, 0–1; null if none. */
   recallRate: number | null;
-  tabs: { ongoing: number; all: number; revised: number; due: number; upcoming: number; weak: number };
+  tabs: { ongoing: number; all: number; completed: number; revised: number; due: number; upcoming: number; weak: number };
   /** Effective revision ladder for this field (custom or global). */
   intervals: number[];
 }
