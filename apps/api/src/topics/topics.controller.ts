@@ -5,6 +5,8 @@ import {
   topicCreateSchema,
   TopicListQuery,
   topicListQuerySchema,
+  TopicMoveInput,
+  topicMoveSchema,
   topicUpdateSchema,
 } from '@study/shared';
 import type { z } from 'zod';
@@ -48,6 +50,12 @@ export class TopicsController {
   @Patch('topics/:id')
   update(@Param('id') id: string, @Body(new ZodPipe(topicUpdateSchema)) body: z.output<typeof topicUpdateSchema>) {
     return this.topics.update(id, body);
+  }
+
+  @Post('topics/:id/move')
+  @HttpCode(200)
+  move(@Param('id') id: string, @Body(new ZodPipe(topicMoveSchema)) body: TopicMoveInput) {
+    return this.topics.move(id, body.fieldId);
   }
 
   @Post('topics/:id/archive')

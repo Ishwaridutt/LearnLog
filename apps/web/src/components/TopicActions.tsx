@@ -24,7 +24,7 @@ export function TopicActions({ topic, size = 'sm' }: { topic: Topic; size?: 'sm'
             Pause
           </Button>
         ) : (
-          <Button size={size} variant="success" disabled={a.busy} onClick={() => a.resume(open.id)}>
+          <Button size={size} variant="success" disabled={a.busy} onClick={() => a.resume({ id: open.id, topicId: topic.id })}>
             Resume
           </Button>
         )}

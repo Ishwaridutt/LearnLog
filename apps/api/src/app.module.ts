@@ -6,8 +6,9 @@ import { FieldsModule } from './fields/fields.module';
 import { TopicsModule } from './topics/topics.module';
 import { StatsModule } from './stats/stats.module';
 import { BackupModule } from './backup/backup.module';
+import { FocusModule } from './focus/focus.module';
 
 @Module({
-  imports: [PrismaModule, ProfileModule, ActivitiesModule, FieldsModule, TopicsModule, StatsModule, BackupModule],
+  imports: [PrismaModule, ProfileModule, ActivitiesModule, FieldsModule, TopicsModule, StatsModule, BackupModule, FocusModule],
 })
 export class AppModule {}

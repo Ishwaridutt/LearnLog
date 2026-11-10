@@ -68,7 +68,7 @@ export function TimerBar() {
                 Pause
               </Button>
             ) : (
-              <Button disabled={actions.busy} variant="success" onClick={() => actions.resume(shown.id)}>
+              <Button disabled={actions.busy} variant="success" onClick={() => actions.resume({ id: shown.id, topicId: shown.topicId })}>
                 Resume
               </Button>
             )}

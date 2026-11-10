@@ -68,6 +68,10 @@ export const topicUpdateSchema = topicCreateSchema.partial();
 export type TopicCreateInput = z.input<typeof topicCreateSchema>;
 export type TopicUpdateInput = z.input<typeof topicUpdateSchema>;
 
+/** Move a topic (with all its sessions and schedule) to another subject. */
+export const topicMoveSchema = z.object({ fieldId: z.string().min(1) });
+export type TopicMoveInput = z.infer<typeof topicMoveSchema>;
+
 export const endActivitySchema = z.object({ grade: z.enum(GRADES).optional() });
 
 export const segmentEndSchema = z.object({ endedAt: z.iso.datetime({ offset: true }) });
@@ -89,6 +93,8 @@ export const importSchema = z.object({
     links: z.array(z.record(z.string(), z.unknown())),
     activities: z.array(z.record(z.string(), z.unknown())),
     segments: z.array(z.record(z.string(), z.unknown())),
+    // Added with the focus timer; older backups have none.
+    focusSessions: z.array(z.record(z.string(), z.unknown())).default([]),
   }),
 });
 export type ImportFile = z.infer<typeof importSchema>;

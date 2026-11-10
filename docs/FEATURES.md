@@ -38,6 +38,7 @@ Build checklist for the LearnLog. Rules referenced as §x live in [REQUIREMENTS.
 | F-34 | Postgres/MySQL provider | Could | 4 |
 | F-35 | AI recall question generation | Could | 4 |
 | F-36 | "No revision needed" per topic | Should | 2 |
+| F-37 | Focus (pomodoro) countdown timer with alarm and history | Should | 3 |
 
 ---
 
@@ -218,3 +219,12 @@ Problem: the Calendar view uses large square cells and is much taller than the h
 - [x] Shows the **current month plus the previous 2 months side by side** (stacked on narrow screens), with prev/next navigation moving one month.
 - [x] Small cells (~22px): qualifying days filled green instead of a ✓ glyph, day number in small text, today outlined, future days faded.
 - [x] Same tooltip as the heatmap (date, minutes, learned/revised counts) and a per-month "N study days" count.
+
+### F-37 Focus (pomodoro) timer
+- [x] Countdown of any length (1 min to 8 h) with presets; Focus and Break kinds. Start, pause/resume, stop early, edit duration (incl. +5/+10/+15 min), delete.
+- [x] Optional topic link: the topic's study timer starts/resumes with the countdown and pauses on pause, stop, delete or time-up. Ending the topic stays a manual step.
+- [x] The server owns the clock: a countdown that hits 0 with no page open is closed at the exact moment it ran out, and its topic time with it.
+- [x] Alarm loops for up to 60 s until dismissed (works on any page), plus a desktop notification if allowed; the prompt offers the next break/focus.
+- [x] Four built-in synthesised sounds plus any audio file dropped into `sounds/` (git-ignored); volume and Test button. Choice stored per browser.
+- [x] Running countdown shown on the dashboard, in the header and in the browser tab title.
+- [x] History tab: set vs used time, start/end, status (Running, Paused, Completed, Stopped early), linked topic; filters and Clear filters; included in export/import.

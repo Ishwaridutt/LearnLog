@@ -61,6 +61,7 @@ export function Modal({
   children,
   footer,
   width = 'max-w-lg',
+  closeOnBackdrop = true,
 }: {
   open: boolean;
   onClose: () => void;
@@ -68,6 +69,8 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
   width?: string;
+  /** false: clicking outside does nothing (for prompts that need an explicit choice). */
+  closeOnBackdrop?: boolean;
 }) {
   const titleId = useId();
   useEffect(() => {
@@ -78,7 +81,7 @@ export function Modal({
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-[10vh]" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-[10vh]" onMouseDown={closeOnBackdrop ? onClose : undefined}>
       <div
         role="dialog"
         aria-modal="true"

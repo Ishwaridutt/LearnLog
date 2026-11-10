@@ -18,7 +18,7 @@ export class BackupController {
   @Get('export')
   @Header('Content-Type', 'application/json; charset=utf-8')
   async export(@Res({ passthrough: true }) res: Response) {
-    const [profile, settings, fields, topics, links, activities, segments] = await Promise.all([
+    const [profile, settings, fields, topics, links, activities, segments, focusSessions] = await Promise.all([
       this.prisma.profile.findMany(),
       this.prisma.settings.findMany(),
       this.prisma.studyField.findMany(),
@@ -26,6 +26,7 @@ export class BackupController {
       this.prisma.topicLink.findMany(),
       this.prisma.activity.findMany(),
       this.prisma.timeSegment.findMany(),
+      this.prisma.focusSession.findMany(),
     ]);
     res.setHeader('Content-Disposition', `attachment; filename="learnlog-${localDay(new Date())}.json"`);
     return {
@@ -33,7 +34,7 @@ export class BackupController {
       app: 'study-tracker',
       schemaVersion: EXPORT_SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),
-      data: { profile, settings, fields, topics, links, activities, segments },
+      data: { profile, settings, fields, topics, links, activities, segments, focusSessions },
     };
   }
 
@@ -44,10 +45,13 @@ export class BackupController {
     const d = file.data;
     const open = (d.segments as Rows).filter((s) => s.endedAt === null || s.endedAt === undefined).length;
     if (open > 1) throw new BadRequestException('Invalid backup: more than one running timer');
+    const activeFocus = (d.focusSessions as Rows).filter((s) => s.status === 'RUNNING' || s.status === 'PAUSED').length;
+    if (activeFocus > 1) throw new BadRequestException('Invalid backup: more than one active focus session');
     try {
       await this.prisma.$transaction(
         async (tx) => {
           // Children first is not needed: deleting fields cascades to topics/links/activities/segments.
+          await tx.focusSession.deleteMany(); // not cascaded: its topic link is SET NULL
           await tx.studyField.deleteMany();
           await tx.profile.deleteMany();
           await tx.settings.deleteMany();
@@ -58,6 +62,7 @@ export class BackupController {
           if (d.links.length) await tx.topicLink.createMany({ data: d.links as Rows });
           if (d.activities.length) await tx.activity.createMany({ data: d.activities as Rows });
           if (d.segments.length) await tx.timeSegment.createMany({ data: d.segments as Rows });
+          if (d.focusSessions.length) await tx.focusSession.createMany({ data: d.focusSessions as Rows });
         },
         { timeout: 60_000 },
       );

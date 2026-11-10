@@ -119,6 +119,21 @@ export class TopicsService {
     };
   }
 
+  /**
+   * Move a topic to another subject. Sessions, grades and the revision schedule move with it unchanged;
+   * future revisions follow the new subject's interval ladder (the scheduler clamps the step if it is shorter).
+   */
+  async move(id: string, toFieldId: string): Promise<TopicDetail> {
+    const t = await this.prisma.topic.findUnique({ where: { id }, include: { field: { select: { archivedAt: true } } } });
+    if (!t) throw new NotFoundException('Topic not found');
+    if (t.fieldId === toFieldId) throw new BadRequestException('The topic is already in this subject');
+    if (t.field.archivedAt) throw new BadRequestException('This subject is archived. Unarchive it first.');
+    const target = await this.field(toFieldId);
+    if (target.archivedAt) throw new BadRequestException(`"${target.name}" is archived. Unarchive it before moving topics into it.`);
+    await this.prisma.topic.update({ where: { id }, data: { fieldId: toFieldId } });
+    return this.detail(id);
+  }
+
   async setArchived(id: string, archived: boolean): Promise<TopicDetail> {
     await this.topicRow(id);
     await this.prisma.$transaction(async (tx) => {

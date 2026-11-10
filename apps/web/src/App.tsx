@@ -2,12 +2,15 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { BrowserRouter, Link, NavLink, Outlet, Route, Routes } from 'react-router-dom';
 import { api, ApiError } from './api/client';
 import { ActionsProvider } from './components/Actions';
+import { FocusNavLink } from './components/focus/FocusCard';
+import { FocusController } from './components/focus/FocusController';
 import { LongSessionGuard } from './components/LongSessionGuard';
 import { ThemeToggle } from './components/ThemeToggle';
 import { TimerBar } from './components/TimerBar';
 import { ToastProvider } from './components/Toasts';
 import { ErrorText, Spinner } from './components/ui';
 import { FieldPage } from './pages/FieldPage';
+import { FocusPage } from './pages/FocusPage';
 import { LandingPage } from './pages/LandingPage';
 import { Onboarding } from './pages/Onboarding';
 import { ProfilePage } from './pages/ProfilePage';
@@ -51,6 +54,7 @@ function ProfileGate() {
         <Route element={<Layout name={profile.data.name} />}>
           <Route index element={<LandingPage name={profile.data.name} />} />
           <Route path="fields/:fieldId" element={<FieldPage />} />
+          <Route path="focus" element={<FocusPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
       </Routes>
@@ -71,6 +75,7 @@ function Layout({ name }: { name: string }) {
             </span>
           </Link>
           <div className="flex items-center gap-3">
+          <FocusNavLink />
           <ThemeToggle />
           <NavLink
             to="/profile"
@@ -91,6 +96,7 @@ function Layout({ name }: { name: string }) {
       </main>
       <TimerBar />
       <LongSessionGuard />
+      <FocusController />
     </div>
   );
 }

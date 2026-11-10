@@ -76,60 +76,98 @@ export class TimerService {
   }
 
   startLearning(topicId: string): Promise<ActionResult> {
-    return this.prisma.$transaction(async (tx) => {
-      const topic = await tx.topic.findUnique({
-        where: { id: topicId },
-        include: { activities: { where: { type: 'LEARNING' } }, field: { select: { archivedAt: true } } },
-      });
-      if (!topic) throw new NotFoundException('Topic not found');
-      assertActive(topic);
-      const now = new Date();
-      let learning = topic.activities[0];
-      if (learning?.status === 'COMPLETED') {
-        throw new BadRequestException('Learning is already completed. Start a revision instead.');
-      }
-      if (!learning) {
-        learning = await tx.activity.create({
-          data: { topicId, type: 'LEARNING', status: 'IN_PROGRESS', startedAt: now },
-        });
-        await tx.topic.update({ where: { id: topicId }, data: { status: 'IN_PROGRESS', startedAt: now } });
-      }
-      return { autoPaused: await this.runActivity(tx, learning.id, now) };
+    return this.prisma.$transaction((tx) => this.learnTx(tx, topicId, new Date()));
+  }
+
+  private async learnTx(tx: Tx, topicId: string, now: Date): Promise<ActionResult> {
+    const topic = await tx.topic.findUnique({
+      where: { id: topicId },
+      include: { activities: { where: { type: 'LEARNING' } }, field: { select: { archivedAt: true } } },
     });
+    if (!topic) throw new NotFoundException('Topic not found');
+    assertActive(topic);
+    let learning = topic.activities[0];
+    if (learning?.status === 'COMPLETED') {
+      throw new BadRequestException('Learning is already completed. Start a revision instead.');
+    }
+    if (!learning) {
+      learning = await tx.activity.create({
+        data: { topicId, type: 'LEARNING', status: 'IN_PROGRESS', startedAt: now },
+      });
+      await tx.topic.update({ where: { id: topicId }, data: { status: 'IN_PROGRESS', startedAt: now } });
+    }
+    return { autoPaused: await this.runActivity(tx, learning.id, now) };
   }
 
   startRevision(topicId: string): Promise<ActionResult & { activityId: string }> {
-    return this.prisma.$transaction(async (tx) => {
-      const topic = await tx.topic.findUnique({
-        where: { id: topicId },
-        include: { activities: { where: { status: 'IN_PROGRESS' } }, field: { select: { archivedAt: true } } },
-      });
-      if (!topic) throw new NotFoundException('Topic not found');
-      assertActive(topic);
-      if (topic.status !== 'COMPLETED' && topic.status !== 'MASTERED') {
-        throw new BadRequestException('Finish learning this topic before revising it.');
-      }
-      const now = new Date();
-      const existing = topic.activities.find((a) => a.type === 'REVISION');
-      if (existing) {
-        return { activityId: existing.id, autoPaused: await this.runActivity(tx, existing.id, now) };
-      }
-      const s = await this.settings.get(tx);
-      const today = studyDay(now, s.dayStartHour);
-      const activity = await tx.activity.create({
-        data: {
-          topicId,
-          type: 'REVISION',
-          status: 'IN_PROGRESS',
-          startedAt: now,
-          // A "no revision needed" topic can still be practised; it never moves a schedule.
-          isEarly: topic.skipRevision || isEarlyRevision({ status: topic.status as TopicStatus, nextDueDay: topic.nextDueDay }, today),
-          stepAtStart: topic.reviewStep,
-          dueDayAtStart: topic.nextDueDay,
-        },
-      });
-      return { activityId: activity.id, autoPaused: await this.runActivity(tx, activity.id, now) };
+    return this.prisma.$transaction((tx) => this.reviseTx(tx, topicId, new Date()));
+  }
+
+  private async reviseTx(tx: Tx, topicId: string, now: Date): Promise<ActionResult & { activityId: string }> {
+    const topic = await tx.topic.findUnique({
+      where: { id: topicId },
+      include: { activities: { where: { status: 'IN_PROGRESS' } }, field: { select: { archivedAt: true } } },
     });
+    if (!topic) throw new NotFoundException('Topic not found');
+    assertActive(topic);
+    if (topic.status !== 'COMPLETED' && topic.status !== 'MASTERED') {
+      throw new BadRequestException('Finish learning this topic before revising it.');
+    }
+    const existing = topic.activities.find((a) => a.type === 'REVISION');
+    if (existing) {
+      return { activityId: existing.id, autoPaused: await this.runActivity(tx, existing.id, now) };
+    }
+    const s = await this.settings.get(tx);
+    const today = studyDay(now, s.dayStartHour);
+    const activity = await tx.activity.create({
+      data: {
+        topicId,
+        type: 'REVISION',
+        status: 'IN_PROGRESS',
+        startedAt: now,
+        // A "no revision needed" topic can still be practised; it never moves a schedule.
+        isEarly: topic.skipRevision || isEarlyRevision({ status: topic.status as TopicStatus, nextDueDay: topic.nextDueDay }, today),
+        stepAtStart: topic.reviewStep,
+        dueDayAtStart: topic.nextDueDay,
+      },
+    });
+    return { activityId: activity.id, autoPaused: await this.runActivity(tx, activity.id, now) };
+  }
+
+  // ---- Used by the focus (countdown) timer to drive a linked topic ----
+
+  /** Resume the topic's open activity, or start learning it, or start a revision if it is already learned. */
+  async startTopicTx(tx: Tx, topicId: string, now: Date): Promise<void> {
+    const topic = await tx.topic.findUnique({
+      where: { id: topicId },
+      include: { activities: { where: { status: 'IN_PROGRESS' } }, field: { select: { archivedAt: true } } },
+    });
+    if (!topic) throw new NotFoundException('Topic not found');
+    assertActive(topic);
+    const open = topic.activities[0];
+    if (open) await this.runActivity(tx, open.id, now);
+    else if (topic.status === 'COMPLETED' || topic.status === 'MASTERED') await this.reviseTx(tx, topicId, now);
+    else await this.learnTx(tx, topicId, now);
+  }
+
+  /** Resume the topic's open activity if it still has one; never starts anything new. */
+  async resumeTopicTx(tx: Tx, topicId: string, now: Date): Promise<void> {
+    const act = await tx.activity.findFirst({
+      where: { topicId, status: 'IN_PROGRESS', topic: { archivedAt: null, field: { archivedAt: null } } },
+    });
+    if (act) await this.runActivity(tx, act.id, now);
+  }
+
+  /** Pause the topic's running segment (if it is the one running) at `at`. */
+  async pauseTopicTx(tx: Tx, topicId: string, at: Date): Promise<void> {
+    const open = await tx.timeSegment.findFirst({ where: { endedAt: null, activity: { topicId } } });
+    if (open) await this.closeSegment(tx, open, at);
+  }
+
+  /** Hook run before reporting timer state, so a countdown that ended unobserved closes its topic time first. */
+  private settler: (() => Promise<unknown>) | null = null;
+  registerSettler(fn: () => Promise<unknown>) {
+    this.settler = fn;
   }
 
   private async inProgressActivity(tx: Tx, activityId: string) {
@@ -227,6 +265,7 @@ export class TimerService {
   }
 
   async current(): Promise<TimerState> {
+    await this.settler?.();
     const open = await this.openSegment();
     const acts = await this.prisma.activity.findMany({
       where: { status: 'IN_PROGRESS', topic: { archivedAt: null, field: { archivedAt: null } } },

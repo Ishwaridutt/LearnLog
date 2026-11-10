@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import type { Grade, Segment, TopicDetail } from '@study/shared';
 import { api } from '../api/client';
 import { fmtClock, fmtDate, fmtDateTime, fmtDay, fmtDuration, fmtTime, liveSeconds, relDay, toLocalInput } from '../lib/format';
 import { useNow } from '../lib/useNow';
 import { LinkList } from './LinkList';
 import { StatusBadge } from './StatusBadge';
-import { TopicActions } from './TopicActions';
+import { ReadOnlyContext, TopicActions } from './TopicActions';
 import { toTopicInput, TopicFormFields, type TopicFormValue } from './TopicForm';
 import { useToast } from './Toasts';
 import { Badge, Button, ErrorText, inputBase, Modal, Spinner } from './ui';
@@ -74,6 +74,8 @@ function TopicView({
   const now = useNow(!!t.liveSince);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingTime, setEditingTime] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const readOnly = useContext(ReadOnlyContext);
   const done = t.status === 'COMPLETED' || t.status === 'MASTERED';
   const mutate = useMutation({
     mutationFn: (fn: () => Promise<unknown>) => fn(),
@@ -152,6 +154,11 @@ function TopicView({
             ⏱ Edit time
           </Button>
         )}
+        {!readOnly && (
+          <Button variant="ghost" onClick={() => setMoving(true)} title="Move this topic and all its history to another subject">
+            ⇄ Move
+          </Button>
+        )}
         <Button variant="ghost" onClick={() => mutate.mutate(() => api.archiveTopic(t.id, !t.archivedAt))}>
           {t.archivedAt ? 'Unarchive' : 'Archive'}
         </Button>
@@ -163,6 +170,7 @@ function TopicView({
       <Timeline topic={t} now={now} />
 
       <EditTimeModal topic={t} open={editingTime} onClose={() => setEditingTime(false)} />
+      {moving && <MoveTopicModal topic={t} onClose={() => setMoving(false)} onMoved={onDeleted} />}
 
       <Modal
         open={confirmDelete}
@@ -275,6 +283,65 @@ function EditTopic({ topic, onDone }: { topic: TopicDetail; onDone: () => void }
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Move a topic added to the wrong subject. Its sessions, grades and schedule go with it. */
+function MoveTopicModal({ topic: t, onClose, onMoved }: { topic: TopicDetail; onClose: () => void; onMoved: () => void }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const fields = useQuery({ queryKey: ['fields', false], queryFn: () => api.fields() });
+  const options = (fields.data ?? []).filter((f) => f.id !== t.fieldId && !f.archivedAt);
+  const [to, setTo] = useState('');
+  const target = options.find((f) => f.id === to);
+  const move = useMutation({
+    mutationFn: () => api.moveTopic(t.id, to),
+    onSuccess: () => {
+      qc.invalidateQueries();
+      toast(`Moved “${t.name}” to ${target?.name ?? 'the other subject'}`, 'success');
+      onClose();
+      onMoved();
+    },
+  });
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Move topic"
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" disabled={!to || move.isPending} onClick={() => move.mutate()}>
+            Move
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3 text-sm text-slate-700">
+        <p>
+          Move <strong>{t.name}</strong> out of <strong>{t.fieldName}</strong>. Its {t.activities.length} session
+          {t.activities.length === 1 ? '' : 's'}, time and revision schedule move with it.
+        </p>
+        {fields.isPending ? (
+          <Spinner />
+        ) : options.length === 0 ? (
+          <p className="text-slate-500">There's no other active subject to move it to. Create one first.</p>
+        ) : (
+          <label className="block">
+            <span className="text-xs font-medium text-slate-500">Move to</span>
+            <select className={`${inputBase} mt-1 block w-full`} value={to} onChange={(e) => setTo(e.target.value)} autoFocus>
+              <option value="">Choose a subject…</option>
+              {options.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <ErrorText error={move.error} />
+      </div>
+    </Modal>
   );
 }
 

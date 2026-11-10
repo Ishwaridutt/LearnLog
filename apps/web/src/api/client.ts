@@ -5,6 +5,12 @@ import type {
   FieldSummary,
   FieldTile,
   FieldUpdateInput,
+  FocusCurrent,
+  FocusHistoryQuery,
+  FocusSession,
+  FocusSound,
+  FocusStartInput,
+  FocusTopicOption,
   Grade,
   HistoryQuery,
   HistoryRow,
@@ -76,6 +82,7 @@ export const api = {
   updateTopic: (id: string, input: TopicUpdateInput) => req<TopicDetail>('PATCH', `/topics/${id}`, input),
   archiveTopic: (id: string, archived: boolean) =>
     req<TopicDetail>('POST', `/topics/${id}/${archived ? 'archive' : 'unarchive'}`),
+  moveTopic: (id: string, fieldId: string) => req<TopicDetail>('POST', `/topics/${id}/move`, { fieldId }),
   pullBack: (id: string) => req<TopicDetail>('POST', `/topics/${id}/pull-back`),
   deleteTopic: (id: string) => req<void>('DELETE', `/topics/${id}`),
 
@@ -94,6 +101,18 @@ export const api = {
   cancelRevision: (activityId: string) => req<ActionResult>('DELETE', `/activities/${activityId}`),
   importData: (file: unknown) =>
     req<{ imported: { fields: number; topics: number; activities: number } }>('POST', '/import', file),
+
+  // Focus (countdown) timer
+  focusCurrent: () => req<FocusCurrent>('GET', '/focus/current'),
+  focusStart: (input: FocusStartInput) => req<FocusCurrent>('POST', '/focus/start', input),
+  focusPause: (id: string) => req<FocusCurrent>('POST', `/focus/${id}/pause`),
+  focusResume: (id: string) => req<FocusCurrent>('POST', `/focus/${id}/resume`),
+  focusStop: (id: string) => req<FocusCurrent>('POST', `/focus/${id}/stop`),
+  focusEdit: (id: string, plannedSeconds: number) => req<FocusCurrent>('PATCH', `/focus/${id}`, { plannedSeconds }),
+  focusDelete: (id: string) => req<FocusCurrent>('DELETE', `/focus/${id}`),
+  focusHistory: (q: FocusHistoryQuery) => req<FocusSession[]>('GET', `/focus/history${qs(q)}`),
+  focusTopics: () => req<FocusTopicOption[]>('GET', '/focus/topics'),
+  focusSounds: () => req<{ folder: string; sounds: FocusSound[] }>('GET', '/focus/sounds'),
 
   streak: () => req<StreakInfo>('GET', '/stats/streak'),
   calendar: () => req<CalendarDay[]>('GET', '/stats/calendar'),

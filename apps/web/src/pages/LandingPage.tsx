@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { FieldTile as Tile } from '@study/shared';
 import { api } from '../api/client';
 import { FieldForm } from '../components/FieldForm';
+import { FocusCard } from '../components/focus/FocusCard';
 import { PaceBadge } from '../components/Pace';
 import { StreakCard } from '../components/StreakCard';
 import { Badge, Button, Empty, Spinner } from '../components/ui';
@@ -30,6 +31,8 @@ export function LandingPage({ name }: { name: string }) {
           {dueTotal > 0 ? `${dueTotal} revision${dueTotal === 1 ? '' : 's'} due across your subjects.` : 'No revisions due right now. Keep learning.'}
         </p>
       </div>
+
+      <FocusCard />
 
       <StreakCard />
 

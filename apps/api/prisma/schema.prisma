@@ -66,6 +66,7 @@ model Topic {
   updatedAt     DateTime   @updatedAt
   links         TopicLink[]
   activities    Activity[]
+  focusSessions FocusSession[]
 
   @@index([fieldId])
   @@index([nextDueDay])
@@ -112,4 +113,23 @@ model TimeSegment {
 
   @@index([activityId])
   @@index([endedAt])
+}
+
+// Countdown (pomodoro) sessions. At most one is RUNNING or PAUSED at a time.
+// Live used time = usedSeconds + (now - runningSince) while RUNNING.
+model FocusSession {
+  id             String    @id @default(cuid())
+  kind           String // FOCUS | BREAK
+  status         String // RUNNING | PAUSED | COMPLETED | STOPPED
+  plannedSeconds Int
+  usedSeconds    Int       @default(0) // closed running time, excluding the live stretch since runningSince
+  runningSince   DateTime?
+  startedAt      DateTime
+  endedAt        DateTime?
+  // Optional link: the topic's study timer runs and pauses with this countdown.
+  topicId        String?
+  topic          Topic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([startedAt])
 }
