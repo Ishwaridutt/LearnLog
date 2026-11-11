@@ -147,8 +147,16 @@ function FieldHeader({ summary: s, onAdd }: { summary: FieldSummary; onAdd: () =
 
   return (
     <header className="space-y-4">
-      <Link to="/" className="rounded text-sm text-slate-500 transition-colors hover:text-indigo-700">
-        ← All subjects
+      <Link
+        to="/"
+        className="group inline-flex h-8 items-center gap-2 rounded-full bg-surface pr-3.5 pl-1 text-sm font-medium text-slate-600 shadow-sm ring-1 ring-slate-200 ring-inset transition-colors hover:bg-indigo-50 hover:text-indigo-700 hover:ring-indigo-200 dark:bg-slate-200 dark:ring-slate-300 dark:hover:bg-indigo-100 dark:hover:ring-indigo-300"
+      >
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-slate-100 text-slate-500 transition-all group-hover:-translate-x-0.5 group-hover:bg-indigo-600 group-hover:text-white dark:bg-slate-300">
+          <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M12 15 7 10l5-5" />
+          </svg>
+        </span>
+        All subjects
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">

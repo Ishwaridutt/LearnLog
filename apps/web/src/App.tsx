@@ -8,7 +8,7 @@ import { LongSessionGuard } from './components/LongSessionGuard';
 import { ThemeToggle } from './components/ThemeToggle';
 import { TimerBar } from './components/TimerBar';
 import { ToastProvider } from './components/Toasts';
-import { ErrorText, Spinner } from './components/ui';
+import { ErrorText, headerChip, headerChipActive, Spinner } from './components/ui';
 import { FieldPage } from './pages/FieldPage';
 import { FocusPage } from './pages/FocusPage';
 import { LandingPage } from './pages/LandingPage';
@@ -74,19 +74,19 @@ function Layout({ name }: { name: string }) {
               <span className="block text-[10px] font-normal tracking-wide text-slate-500 uppercase">Study tracker</span>
             </span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
           <FocusNavLink />
           <ThemeToggle />
           <NavLink
             to="/profile"
             className={({ isActive }) =>
-              `flex items-center gap-2 rounded-full px-2 py-1 text-sm transition-colors hover:bg-indigo-50 hover:text-indigo-700 hover:ring-1 hover:ring-indigo-200 ${isActive ? 'bg-indigo-50 ring-1 ring-indigo-200' : ''}`
+              `flex items-center gap-2 py-1 pr-3.5 pl-1 text-sm font-medium ${isActive ? headerChipActive : headerChip}`
             }
           >
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-indigo-600 text-xs font-semibold text-white">
               {name.slice(0, 1).toUpperCase()}
             </span>
-            <span className="text-slate-700">{name}</span>
+            <span>{name}</span>
           </NavLink>
           </div>
         </div>

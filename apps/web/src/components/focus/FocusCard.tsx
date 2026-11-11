@@ -1,7 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
 import { fmtDuration } from '../../lib/format';
 import { fmtCountdown } from '../../lib/focusPrefs';
-import { Badge, Button } from '../ui';
+import { Badge, Button, headerChip, headerChipActive } from '../ui';
 import { KIND_LABEL, useFocusActions, useFocusClock, useFocusCurrent } from './useFocus';
 
 /** Dashboard card for the running or paused countdown; renders nothing when idle. */
@@ -67,9 +67,9 @@ export function FocusNavLink() {
   // Colour shows the state at a glance on every screen: running focus / running break / paused / idle.
   const state = !s ? 'idle' : s.status === 'PAUSED' ? 'paused' : s.kind === 'BREAK' ? 'break' : 'focus';
   const tone = {
-    focus: 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-500',
-    break: 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-500',
-    paused: 'bg-amber-100 text-amber-800 ring-1 ring-amber-300 hover:bg-amber-200',
+    focus: 'h-9 rounded-full bg-indigo-600 text-white shadow-sm hover:bg-indigo-500',
+    break: 'h-9 rounded-full bg-emerald-600 text-white shadow-sm hover:bg-emerald-500',
+    paused: 'h-9 rounded-full bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-300 shadow-sm hover:bg-amber-200',
     idle: '',
   }[state];
   const label = { focus: 'Focus running', break: 'Break running', paused: 'Focus paused', idle: 'Focus timer' }[state];
@@ -79,10 +79,7 @@ export function FocusNavLink() {
       title={label}
       aria-label={s && clock ? `${label}, ${fmtCountdown(clock.remaining)} left` : label}
       className={({ isActive }) =>
-        `flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors ${
-          tone ||
-          (isActive ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200' : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700')
-        }`
+        `flex items-center gap-1.5 px-3.5 text-sm font-medium transition-colors ${tone || (isActive ? headerChipActive : headerChip)}`
       }
     >
       <span aria-hidden className={state === 'focus' || state === 'break' ? 'animate-pulse' : ''}>

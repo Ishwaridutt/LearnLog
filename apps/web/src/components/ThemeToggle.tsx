@@ -1,4 +1,5 @@
 import { useTheme } from '../lib/theme';
+import { headerChip } from './ui';
 
 /** F-28: one-click Light ⇄ Dark switch for the header. */
 export function ThemeToggle() {
@@ -10,7 +11,7 @@ export function ThemeToggle() {
       onClick={() => setTheme(dark ? 'light' : 'dark')}
       aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
       title={dark ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-base text-slate-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+      className={`grid w-9 place-items-center text-base ${headerChip}`}
     >
       <span aria-hidden>{dark ? '☀' : '☾'}</span>
     </button>

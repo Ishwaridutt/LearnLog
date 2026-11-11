@@ -16,6 +16,14 @@ const variants: Record<Variant, string> = {
   success: 'bg-emerald-600 text-white shadow-sm enabled:hover:bg-emerald-500 enabled:hover:shadow disabled:bg-emerald-300',
 };
 
+/**
+ * Header controls (focus, theme, profile): a soft filled chip with a hairline ring, so they read as
+ * buttons against the header, plus the indigo hover used across the app. Same height for all three.
+ */
+export const headerChip =
+  'h-9 rounded-full bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200 shadow-sm transition-colors dark:bg-slate-300/80 dark:text-slate-800 dark:ring-slate-400/50 hover:bg-indigo-50 hover:text-indigo-700 hover:ring-indigo-200 dark:hover:bg-indigo-200 dark:hover:text-indigo-800 dark:hover:ring-indigo-300';
+export const headerChipActive = 'h-9 rounded-full bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-300 shadow-sm';
+
 /** Shared hover for whole clickable rows (topic, revision, history rows). */
 export const rowHover = 'transition-colors hover:bg-indigo-50';
 
