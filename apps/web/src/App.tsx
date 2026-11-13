@@ -14,6 +14,7 @@ import { FocusPage } from './pages/FocusPage';
 import { LandingPage } from './pages/LandingPage';
 import { Onboarding } from './pages/Onboarding';
 import { ProfilePage } from './pages/ProfilePage';
+import { TimelinePage } from './pages/TimelinePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,6 +56,7 @@ function ProfileGate() {
           <Route index element={<LandingPage name={profile.data.name} />} />
           <Route path="fields/:fieldId" element={<FieldPage />} />
           <Route path="focus" element={<FocusPage />} />
+          <Route path="timeline" element={<TimelinePage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
       </Routes>
@@ -75,18 +77,32 @@ function Layout({ name }: { name: string }) {
             </span>
           </Link>
           <div className="flex items-center gap-2">
+          <NavLink
+            to="/timeline"
+            title="Timeline"
+            aria-label="Timeline"
+            className={({ isActive }) => `flex items-center gap-1.5 px-3 text-sm font-medium sm:px-3.5 ${isActive ? headerChipActive : headerChip}`}
+          >
+            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor" aria-hidden>
+              <rect x="3" y="10" width="3" height="7" rx="1" />
+              <rect x="8.5" y="5" width="3" height="12" rx="1" />
+              <rect x="14" y="8" width="3" height="9" rx="1" />
+            </svg>
+            <span className="hidden sm:inline">Timeline</span>
+          </NavLink>
           <FocusNavLink />
           <ThemeToggle />
           <NavLink
             to="/profile"
+            title={name}
             className={({ isActive }) =>
-              `flex items-center gap-2 py-1 pr-3.5 pl-1 text-sm font-medium ${isActive ? headerChipActive : headerChip}`
+              `flex items-center gap-2 py-1 pl-1 pr-1 text-sm font-medium sm:pr-3.5 ${isActive ? headerChipActive : headerChip}`
             }
           >
             <span className="grid h-7 w-7 place-items-center rounded-full bg-indigo-600 text-xs font-semibold text-white">
               {name.slice(0, 1).toUpperCase()}
             </span>
-            <span>{name}</span>
+            <span className="hidden sm:inline">{name}</span>
           </NavLink>
           </div>
         </div>

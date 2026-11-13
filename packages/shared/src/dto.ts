@@ -11,7 +11,30 @@ const optionalText = (max: number) =>
     .nullish()
     .transform((v) => (v ? v : null));
 
-export const FIELD_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#64748b'];
+/** Preset subject colours, in hue order. Any #rrggbb is accepted; these are the quick picks. */
+export const FIELD_PALETTE: { name: string; hex: string }[] = [
+  { name: 'Red', hex: '#ef4444' },
+  { name: 'Rose', hex: '#f43f5e' },
+  { name: 'Pink', hex: '#ec4899' },
+  { name: 'Fuchsia', hex: '#d946ef' },
+  { name: 'Purple', hex: '#a855f7' },
+  { name: 'Violet', hex: '#8b5cf6' },
+  { name: 'Indigo', hex: '#6366f1' },
+  { name: 'Blue', hex: '#3b82f6' },
+  { name: 'Sky', hex: '#0ea5e9' },
+  { name: 'Cyan', hex: '#06b6d4' },
+  { name: 'Teal', hex: '#14b8a6' },
+  { name: 'Emerald', hex: '#10b981' },
+  { name: 'Green', hex: '#22c55e' },
+  { name: 'Lime', hex: '#84cc16' },
+  { name: 'Yellow', hex: '#eab308' },
+  { name: 'Amber', hex: '#f59e0b' },
+  { name: 'Orange', hex: '#f97316' },
+  { name: 'Brown', hex: '#a16207' },
+  { name: 'Slate', hex: '#64748b' },
+  { name: 'Stone', hex: '#78716c' },
+];
+export const FIELD_COLORS = FIELD_PALETTE.map((c) => c.hex);
 
 export const profileSchema = z.object({ name: z.string().trim().min(1, 'Name is required').max(60) });
 export type ProfileInput = z.infer<typeof profileSchema>;

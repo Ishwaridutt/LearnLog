@@ -25,6 +25,7 @@ Works for anything you study: coding interviews, exams, languages.
 - **Weak spots**: topics you keep forgetting (2+ Forgot in their last 5 revisions) get their own tab, so you re-learn them instead of just revising.
 - **Targets and pace** (optional): e.g. "60 topics by 31 Jan" shows whether you're ahead, on track or behind, and how many topics a day you need.
 - **Per-subject revision intervals**: give an exam subject a tighter ladder than the rest.
+- **Timeline**: a bar chart of how long you studied each day (7 / 30 / 90 days), coloured by subject. Click a day (or any heatmap square) to see which subjects and topics the time went to, session by session. The dashboard shows today's total live.
 - **Focus timer (pomodoro)**: count down any length (30 min, 55 min, 1h 15m…), then an alarm rings and offers a break. Pause, stop, extend or delete the session, optionally link it to a topic so its study time is logged, and review every session in a History tab. Pick a built-in alarm or drop your own audio files into [`sounds/`](sounds/README.md).
 - **Move a topic** to another subject if you added it in the wrong place; its sessions, time and revision schedule go with it.
 - **Archive or delete** subjects and topics; **export** everything to JSON and **import** it back.

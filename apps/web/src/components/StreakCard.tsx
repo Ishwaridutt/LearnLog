@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { addDays, dayOfWeek, heatLevel, type CalendarDay, type CalendarView, type Day } from '@study/shared';
 import { api } from '../api/client';
 import { fmtDay } from '../lib/format';
@@ -8,7 +9,10 @@ import { Spinner } from './ui';
 const HEAT = ['bg-[var(--heat-0)]', 'bg-[var(--heat-1)]', 'bg-[var(--heat-2)]', 'bg-[var(--heat-3)]', 'bg-[var(--heat-4)]'];
 
 const tip = (d: CalendarDay) =>
-  `${fmtDay(d.day)}: ${d.minutes} min · ${d.learnings} learned · ${d.revisions} revised`;
+  `${fmtDay(d.day)}: ${d.minutes} min · ${d.learnings} learned · ${d.revisions} revised · click for details`;
+
+/** F-38: every past day opens that day on the Timeline page. */
+const dayLink = (d: Day) => `/timeline?day=${d}`;
 
 /** F-15: current/longest streak with a heatmap ⇄ month-ticks calendar. */
 export function StreakCard() {
@@ -105,10 +109,12 @@ function Heatmap({ days, today }: { days: CalendarDay[]; today: Day }) {
                 if (d > today) return <span key={d} className="h-[11px] w-[11px]" />;
                 const entry = byDay.get(d) ?? { day: d, minutes: 0, learnings: 0, revisions: 0 };
                 return (
-                  <span
+                  <Link
                     key={d}
+                    to={dayLink(d)}
                     title={tip(entry)}
-                    className={`h-[11px] w-[11px] rounded-[2px] ${HEAT[heatLevel(entry.minutes)]} ${d === today ? 'ring-1 ring-slate-500' : ''}`}
+                    aria-label={tip(entry)}
+                    className={`block h-[11px] w-[11px] rounded-[2px] transition-transform hover:scale-125 hover:ring-2 hover:ring-indigo-500 ${HEAT[heatLevel(entry.minutes)]} ${d === today ? 'ring-1 ring-slate-500' : ''}`}
                   />
                 );
               })}
@@ -200,16 +206,19 @@ function MiniMonth({ month, today, byDay }: { month: string; today: Day; byDay: 
           const future = d > today;
           const bg = future ? '' : qualified ? HEAT[Math.max(2, heatLevel(e!.minutes))] : e && e.minutes > 0 ? HEAT[1] : HEAT[0];
           const text = qualified && heatLevel(e!.minutes) >= 3 ? 'text-white dark:text-gray-900' : future ? 'text-slate-300' : 'text-slate-600';
+          const cls = `grid h-[22px] w-[22px] place-items-center rounded-[4px] text-[10px] tabular-nums ${bg} ${text} ${
+            d === today ? 'ring-2 ring-indigo-500' : ''
+          }`;
+          if (future)
+            return (
+              <span key={d} className={cls}>
+                {Number(d.slice(8))}
+              </span>
+            );
           return (
-            <span
-              key={d}
-              title={e ? tip(e) : fmtDay(d)}
-              className={`grid h-[22px] w-[22px] place-items-center rounded-[4px] text-[10px] tabular-nums ${bg} ${text} ${
-                d === today ? 'ring-2 ring-indigo-500' : ''
-              }`}
-            >
+            <Link key={d} to={dayLink(d)} title={e ? tip(e) : `${fmtDay(d)} · click for details`} className={`${cls} transition-shadow hover:ring-2 hover:ring-indigo-500`}>
               {Number(d.slice(8))}
-            </span>
+            </Link>
           );
         })}
       </div>

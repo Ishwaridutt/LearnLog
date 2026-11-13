@@ -5,3 +5,4 @@ export * from './insights';
 export * from './dto';
 export * from './types';
 export * from './focus';
+export * from './timeline';

@@ -39,6 +39,7 @@ Build checklist for the LearnLog. Rules referenced as §x live in [REQUIREMENTS.
 | F-35 | AI recall question generation | Could | 4 |
 | F-36 | "No revision needed" per topic | Should | 2 |
 | F-37 | Focus (pomodoro) countdown timer with alarm and history | Should | 3 |
+| F-38 | Daily study timeline with per-day breakdown and a "studied today" card | Should | 3 |
 
 ---
 
@@ -228,3 +229,11 @@ Problem: the Calendar view uses large square cells and is much taller than the h
 - [x] Four built-in synthesised sounds plus any audio file dropped into `sounds/` (git-ignored); volume and Test button. Choice stored per browser.
 - [x] Running countdown shown on the dashboard, in the header and in the browser tab title.
 - [x] History tab: set vs used time, start/end, status (Running, Paused, Completed, Stopped early), linked topic; filters and Clear filters; included in export/import.
+
+### F-38 Daily study timeline
+- [x] Timeline page (header → Timeline): stacked bars of study time per day over 7 / 30 / 90 days, coloured by subject, with previous/next and Jump to today. Totals: range total, daily average, days studied, best day.
+- [x] Counted time = topic timer time (linked focus sessions already feed it) + focus countdowns with no topic, shown hatched as "Focus (no topic)". A no-topic countdown running alongside a topic timer is not counted twice; breaks never count. Days honour the day-start hour and split sessions at the boundary.
+- [x] Hover a bar for its split; click it (or any past day in the dashboard heatmap/calendar) to open that day: subject → topic totals with learning vs revision, then every session with start–end times. Back-to-back stretches of the same topic (pause → resume within 5 min) show as one row.
+- [x] Dashboard "Studied today" card: live total while a timer runs, split by subject, compared with the 7-day average, links to today's details.
+- [x] The heatmap's minutes use the same counting, so both views always agree.
+- [x] API: `GET /stats/timeline?from&to` (max 400 days), `GET /stats/day[/:day]`.

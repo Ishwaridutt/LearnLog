@@ -1,6 +1,7 @@
 import type {
   ActionResult,
   CalendarDay,
+  DayDetail,
   FieldCreateInput,
   FieldSummary,
   FieldTile,
@@ -19,6 +20,7 @@ import type {
   Settings,
   SettingsInput,
   StreakInfo,
+  Timeline,
   TimerState,
   Topic,
   TopicCreateInput,
@@ -116,4 +118,6 @@ export const api = {
 
   streak: () => req<StreakInfo>('GET', '/stats/streak'),
   calendar: () => req<CalendarDay[]>('GET', '/stats/calendar'),
+  timeline: (from: string, to: string) => req<Timeline>('GET', `/stats/timeline${qs({ from, to })}`),
+  day: (day?: string) => req<DayDetail>('GET', day ? `/stats/day/${day}` : '/stats/day'),
 };

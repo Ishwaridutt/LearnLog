@@ -7,6 +7,7 @@ import { FieldForm } from '../components/FieldForm';
 import { FocusCard } from '../components/focus/FocusCard';
 import { PaceBadge } from '../components/Pace';
 import { StreakCard } from '../components/StreakCard';
+import { TodayCard } from '../components/timeline/TodayCard';
 import { Badge, Button, Empty, Spinner } from '../components/ui';
 import { fmtDuration, liveSeconds } from '../lib/format';
 import { useNow } from '../lib/useNow';
@@ -33,6 +34,8 @@ export function LandingPage({ name }: { name: string }) {
       </div>
 
       <FocusCard />
+
+      <TodayCard />
 
       <StreakCard />
 

@@ -169,6 +169,10 @@ export class TimerService {
   registerSettler(fn: () => Promise<unknown>) {
     this.settler = fn;
   }
+  /** Close an expired focus countdown (and pause its topic) so reads see the true end time. */
+  async settle() {
+    await this.settler?.();
+  }
 
   private async inProgressActivity(tx: Tx, activityId: string) {
     const activity = await tx.activity.findUnique({
